@@ -102,7 +102,9 @@ func valueExists(m map[string]interface{}, path []string) bool {
 	return false
 }
 
-func RenderFile(inputPath, baseInputDir, outputDir string, values map[string]interface{}, dryRun, verbose bool, stripSuffix string) error {
+func RenderFile(inputPath, baseInputDir, outputDir string,
+	values map[string]interface{}, dryRun, verbose bool,
+	stripSuffix string, readonly bool) error {
 	content, err := os.ReadFile(inputPath)
 	if err != nil {
 		return err
@@ -160,5 +162,43 @@ func RenderFile(inputPath, baseInputDir, outputDir string, values map[string]int
 		fmt.Fprintf(os.Stderr, "[templar] ⚠️  Warning: found %d unset variables. Use --verbose to list them.\n", unset)
 	}
 
-	return tmpl.Execute(outFile, values)
+	err = tmpl.Execute(outFile, values)
+	if err != nil {
+		return err
+	}
+
+	// After tmpl.Execute(outFile, values)...
+	if readonly {
+		err = os.Chmod(outputPath, 0444) // Owner/group/others: read-only
+		if err != nil {
+			return fmt.Errorf("failed to make file readonly: %w", err)
+		}
+	}
+	return nil
+}
+
+func CopyFile(src, dst string, readonly bool) error {
+	input, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll(filepath.Dir(dst), 0755)
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(dst, input, 0644)
+	if err != nil {
+		return err
+	}
+
+	if readonly {
+		err = os.Chmod(dst, 0444)
+		if err != nil {
+			return fmt.Errorf("failed to make file readonly: %w", err)
+		}
+	}
+
+	return nil
 }

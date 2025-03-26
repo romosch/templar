@@ -26,3 +26,13 @@ func ShouldInclude(path string, includes, excludes []string) bool {
 	}
 	return false
 }
+
+func MatchesAny(patterns []string, path string) bool {
+	for _, pattern := range patterns {
+		match, _ := doublestar.PathMatch(pattern, path)
+		if match {
+			return true
+		}
+	}
+	return false
+}
