@@ -9,17 +9,21 @@ import (
 	"path/filepath"
 	"strings"
 
-	"templater/internal/config"
-	"templater/internal/loader"
-	"templater/internal/renderer"
-	"templater/internal/walker"
+	"templar/internal/config"
+	"templar/internal/loader"
+	"templar/internal/renderer"
+	"templar/internal/walker"
 )
+
+const Version = "v0.1.0"
 
 var (
 	dryRun               bool
 	verbose              bool
 	force                bool
 	readonly             bool
+	showVersion          bool
+	showHelp             bool
 	values               multiFlag
 	setVals              multiFlag
 	includePatterns      multiFlag
@@ -27,7 +31,6 @@ var (
 	copyOnlyPatterns     multiFlag
 	templateOnlyPatterns multiFlag
 	stripSuffix          string
-	outputDir            string
 	configPath           string
 )
 
@@ -37,10 +40,12 @@ func (m *multiFlag) String() string         { return fmt.Sprint(*m) }
 func (m *multiFlag) Set(value string) error { *m = append(*m, value); return nil }
 
 func init() {
+	flag.BoolVar(&showVersion, "version", false, "Show version and exit")
+	flag.BoolVar(&showHelp, "help", false, "Show help and exit")
 	flag.BoolVar(&dryRun, "dry-run", false, "Simulate actions without writing files")
 	flag.BoolVar(&verbose, "verbose", false, "Enable verbose logging")
 	flag.BoolVar(&readonly, "readonly", false, "Make all generated files read-only")
-	flag.StringVar(&configPath, "config", ".templar.yaml", "Path to Templar config file")
+	flag.StringVar(&configPath, "config", ".templar.yml", "Path to Templar config file")
 	flag.Var(&values, "values", "Path to values YAML file (can be repeated)")
 	flag.Var(&setVals, "set", "Set a value (key=value) (can be repeated)")
 	flag.Var(&includePatterns, "include", "Glob pattern of files to include (can be repeated)")
@@ -48,9 +53,7 @@ func init() {
 	flag.Var(&copyOnlyPatterns, "copy-only", "Glob pattern for files to copy without templating (can be repeated)")
 	flag.Var(&templateOnlyPatterns, "template-only", "Glob pattern for files to template; others copied as-is (mutually exclusive with --copy-only)")
 	flag.StringVar(&stripSuffix, "strip", "", "Suffix to strip from output filenames if templated")
-	flag.StringVar(&outputDir, "o", "out", "Output directory")
 	flag.BoolVar(&force, "force", false, "Overwrite files in output directory without confirmation")
-
 }
 
 func confirmOverwrite(path string) bool {
@@ -64,15 +67,20 @@ func confirmOverwrite(path string) bool {
 func main() {
 	flag.Parse()
 
+	if showVersion {
+		fmt.Printf("Templar version %s\n", Version)
+		os.Exit(0)
+	}
+
 	args := flag.Args()
-	if len(args) < 1 {
-		fmt.Println("Usage: templater [--dry-run] [--verbose] [--values] [--include] [--exclude] [--force] [--readonly] <input-dir>")
-		fmt.Println("args: ", args)
+	if showHelp || len(args) < 2 {
+		fmt.Println("Usage: templar [flags] <input-dir> <output-dir>")
+		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
 	cfg, err := config.LoadConfig(configPath)
-	if err != nil && !os.IsNotExist(err) {
+	if err != nil && !os.IsNotExist(err) && configPath != flag.Lookup("config").DefValue {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
@@ -100,9 +108,7 @@ func main() {
 		if stripSuffix == "" {
 			stripSuffix = cfg.Strip
 		}
-		if outputDir == "" && cfg.OutputDir != "" {
-			outputDir = cfg.OutputDir
-		}
+
 		if !force {
 			force = cfg.Force
 		}
@@ -112,10 +118,6 @@ func main() {
 		if !dryRun {
 			dryRun = cfg.DryRun
 		}
-
-		if len(flag.Args()) == 0 && len(cfg.InputPaths) > 0 {
-			flag.CommandLine.Parse(cfg.InputPaths)
-		}
 	}
 
 	if len(copyOnlyPatterns) > 0 && len(templateOnlyPatterns) > 0 {
@@ -123,7 +125,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	if stat, err := os.Stat(outputDir); err == nil && stat.IsDir() && !force {
+	inputDir := args[0]
+	outputDir := args[1]
+
+	if stat, err := os.Stat(outputDir); err == nil && stat.IsDir() && !force && !dryRun {
 		entries, _ := os.ReadDir(outputDir)
 		if len(entries) > 0 {
 			if !confirmOverwrite(outputDir) {
@@ -133,18 +138,15 @@ func main() {
 		}
 	}
 
-	inputPath := args[0]
-
 	values, err := loader.LoadAndMergeValues(values, setVals)
 	if err != nil {
 		log.Fatalf("failed to load values: %v", err)
 	}
 	if verbose {
-		fmt.Printf("Loaded values: %v\n", values)
-		fmt.Printf("Includes: %v\n", includePatterns)
+		printConfig()
 	}
 
-	absInputPath, _ := filepath.Abs(inputPath)
+	absInputPath, _ := filepath.Abs(inputDir)
 	if verbose {
 		fmt.Printf("Processing input path: %s\n", absInputPath)
 	}
@@ -174,16 +176,16 @@ func main() {
 		}
 
 		if shouldTemplate {
-			if verbose {
-				fmt.Printf("Templating: %s\n", relPath)
-			}
 			err := renderer.RenderFile(file, absInputPath, outputDir, values, dryRun, verbose, stripSuffix, readonly)
 			if err != nil {
 				log.Printf("error rendering file %s: %v", file, err)
 			}
 		} else {
 			if verbose {
-				fmt.Printf("Copying without templating: %s\n", relPath)
+				fmt.Printf("Copying: %s\n", relPath)
+			}
+			if dryRun {
+				continue
 			}
 			err := renderer.CopyFile(file, destPath, readonly)
 			if err != nil {
@@ -193,4 +195,21 @@ func main() {
 	}
 
 	fmt.Println("Template rendering complete.")
+}
+
+func printConfig() {
+	fmt.Println("dryRun: ", dryRun)
+	fmt.Println("verbose: ", verbose)
+	fmt.Println("force: ", force)
+	fmt.Println("readonly: ", readonly)
+	fmt.Println("showVersion: ", showVersion)
+	fmt.Println("showHelp: ", showHelp)
+	fmt.Println("values: ", values)
+	fmt.Println("setVals: ", setVals)
+	fmt.Println("includePatterns: ", includePatterns)
+	fmt.Println("excludePatterns: ", excludePatterns)
+	fmt.Println("copyOnlyPatterns: ", copyOnlyPatterns)
+	fmt.Println("templateOnlyPatterns: ", templateOnlyPatterns)
+	fmt.Println("stripSuffix: ", stripSuffix)
+	fmt.Println("configPath: ", configPath)
 }
