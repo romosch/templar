@@ -1,6 +1,6 @@
-# templar
+# Templir
 
-templar is a command-line tool for rendering templates with dynamic values. It processes input files, applies templates, and generates output files based on provided values.
+templir is a command-line tool for rendering templates with dynamic values. It processes input files, applies templates, and generates output files based on provided values.
 
 ## Features
 
@@ -16,19 +16,19 @@ templar is a command-line tool for rendering templates with dynamic values. It p
 
 1. Clone the repository:
     ```bash
-    git clone https://github.com/your-username/templar.git
-    cd templar
+    git clone https://github.com/your-username/templir.git
+    cd templir
     ```
 
 2. Build the binary:
     ```bash
-    go build -o templar
+    go build -o templir
     ```
 
 ## Usage
 
 ```bash
-templar [options] <input-dir>
+templir [options] <input-dir>
 ```
 
 ### Options
@@ -48,7 +48,7 @@ templar [options] <input-dir>
 ### Example
 
 ```bash
-templar --values values.yaml --set app.name=myapp --include "**/*.tmpl" --exclude "test/*" --copy-only "**/*.txt" -o output templates/
+templir --values values.yaml --set app.name=myapp --include "**/*.tmpl" --exclude "test/*" --copy-only "**/*.txt" -o output templates/
 ```
 
 ## Project Structure

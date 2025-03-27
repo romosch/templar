@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"templar/internal/config"
-	"templar/internal/loader"
-	"templar/internal/renderer"
-	"templar/internal/walker"
+	"templir/internal/config"
+	"templir/internal/loader"
+	"templir/internal/renderer"
+	"templir/internal/walker"
 )
 
 const Version = "v0.1.0"
@@ -45,7 +45,7 @@ func init() {
 	flag.BoolVar(&dryRun, "dry-run", false, "Simulate actions without writing files")
 	flag.BoolVar(&verbose, "verbose", false, "Enable verbose logging")
 	flag.BoolVar(&readonly, "readonly", false, "Make all generated files read-only")
-	flag.StringVar(&configPath, "config", ".templar.yml", "Path to Templar config file")
+	flag.StringVar(&configPath, "config", ".templir.yml", "Path to templir config file")
 	flag.Var(&values, "values", "Path to values YAML file (can be repeated)")
 	flag.Var(&setVals, "set", "Set a value (key=value) (can be repeated)")
 	flag.Var(&includePatterns, "include", "Glob pattern of files to include (can be repeated)")
@@ -57,7 +57,7 @@ func init() {
 }
 
 func confirmOverwrite(path string) bool {
-	fmt.Printf("[templar] ⚠️  Non-empty output directory '%s' already exists. Overwrite? [y/N]: ", path)
+	fmt.Printf("[templir] ⚠️  Non-empty output directory '%s' already exists. Overwrite? [y/N]: ", path)
 	reader := bufio.NewReader(os.Stdin)
 	answer, _ := reader.ReadString('\n')
 	answer = strings.ToLower(strings.TrimSpace(answer))
@@ -68,13 +68,13 @@ func main() {
 	flag.Parse()
 
 	if showVersion {
-		fmt.Printf("Templar version %s\n", Version)
+		fmt.Printf("templir version %s\n", Version)
 		os.Exit(0)
 	}
 
 	args := flag.Args()
 	if showHelp || len(args) < 2 {
-		fmt.Println("Usage: templar [flags] <input-dir> <output-dir>")
+		fmt.Println("Usage: templir [flags] <input-dir> <output-dir>")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
@@ -121,7 +121,7 @@ func main() {
 	}
 
 	if len(copyOnlyPatterns) > 0 && len(templateOnlyPatterns) > 0 {
-		fmt.Println("[templar] ❌ Cannot use both --copy-only and --template-only")
+		fmt.Println("[templir] ❌ Cannot use both --copy-only and --template-only")
 		os.Exit(1)
 	}
 
@@ -132,7 +132,7 @@ func main() {
 		entries, _ := os.ReadDir(outputDir)
 		if len(entries) > 0 {
 			if !confirmOverwrite(outputDir) {
-				fmt.Println("[templar] Aborted.")
+				fmt.Println("[templir] Aborted.")
 				os.Exit(0)
 			}
 		}

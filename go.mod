@@ -1,4 +1,4 @@
-module templar
+module templir
 
 go 1.23.3
 
