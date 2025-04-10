@@ -1,14 +1,17 @@
-package loader
+package values
 
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	"gopkg.in/yaml.v3"
 )
 
-func LoadAndMergeValues(valueFiles []string, setVals []string) (map[string]interface{}, error) {
+var envVarRegexp = regexp.MustCompile(`\$\{([^}]+)\}`)
+
+func LoadAndMerge(valueFiles []string, setVals []string) (map[string]interface{}, error) {
 	final := map[string]interface{}{}
 
 	// Load values from files
@@ -18,7 +21,7 @@ func LoadAndMergeValues(valueFiles []string, setVals []string) (map[string]inter
 			return nil, fmt.Errorf("failed to read values file %s: %w", file, err)
 		}
 
-		// 🌱 Substitute environment variables before parsing
+		// Substitute environment variables before parsing
 		yamlText := substituteEnvVars(string(data))
 
 		var parsed map[string]interface{}
@@ -75,4 +78,24 @@ func mergeMaps(dst, src map[string]interface{}) {
 			dst[k] = v
 		}
 	}
+}
+
+// substituteEnvVars replaces ${VAR} with the corresponding environment variable.
+// Escaped form ${{VAR}} is preserved as literal ${VAR}.
+func substituteEnvVars(yamlContent string) string {
+	// Step 1: Escape ${{VAR}} to a temporary placeholder
+	yamlContent = strings.ReplaceAll(yamlContent, "${{", "__ESCAPED_VAR__START__")
+	yamlContent = strings.ReplaceAll(yamlContent, "}}", "__ESCAPED_VAR__END__")
+
+	// Step 2: Substitute all ${VAR}
+	yamlContent = envVarRegexp.ReplaceAllStringFunc(yamlContent, func(m string) string {
+		key := envVarRegexp.FindStringSubmatch(m)[1]
+		return os.Getenv(key)
+	})
+
+	// Step 3: Restore escaped ${VAR}
+	yamlContent = strings.ReplaceAll(yamlContent, "__ESCAPED_VAR__START__", "${")
+	yamlContent = strings.ReplaceAll(yamlContent, "__ESCAPED_VAR__END__", "}")
+
+	return yamlContent
 }
