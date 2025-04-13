@@ -11,6 +11,7 @@ var (
 	force           bool
 	showVersion     bool
 	showHelp        bool
+	mode            string
 	stripSuffix     string
 	args            []string
 	values          multiFlag
@@ -38,6 +39,7 @@ func Init() {
 	flag.Var(&copyPatterns, "copy", "Glob pattern for files to copy without templating (can be repeated)")
 	flag.Var(&tempPatterns, "temp", "Glob pattern for files to template; others are copied as-is (mutually exclusive with --copy)")
 	flag.StringVar(&stripSuffix, "strip", "", "Suffix to strip from output filenames if templated")
+	flag.StringVar(&mode, "mode", "", "Set file mode (permissions) for created files (octal or symbolic)")
 	flag.BoolVar(&force, "force", false, "Overwrite files in output directory without confirmation")
 
 	flag.Parse()
@@ -99,4 +101,8 @@ func Args() []string {
 
 func PrintDefaults() {
 	flag.PrintDefaults()
+}
+
+func Mode() string {
+	return mode
 }

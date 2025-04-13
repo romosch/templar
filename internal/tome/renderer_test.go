@@ -4,78 +4,99 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func TestRender(t *testing.T) {
-	tempDir := t.TempDir()
-	inputFile := filepath.Join(tempDir, "input-{{.name}}.txt")
-	outputDir := filepath.Join(tempDir, "output")
-	outputFile := filepath.Join(outputDir, "input-test.txt")
-
-	// Create a mock input file
-	err := os.WriteFile(inputFile, []byte("Hello, {{ .msg }}!"), 0644)
-	if err != nil {
-		t.Fatalf("Failed to create input file: %v", err)
-	}
-
-	tome := &Tome{
-		Source: tempDir,
-		Target: outputDir,
-		Values: map[string]interface{}{
-			"name": "test",
-			"msg":  "World",
+func TestRenderMatrix(t *testing.T) {
+	tests := []struct {
+		dryRun           bool
+		force            bool
+		inputMode        os.FileMode
+		expectedMode     os.FileMode
+		name             string
+		inputFileName    string
+		inputFileContent string
+		expectedOutput   string
+		expectedFileName string
+		tome             Tome
+	}{
+		{
+			name:             "Replace placeholders and change mode",
+			inputMode:        0644,
+			expectedMode:     0777,
+			inputFileName:    "input-{{.name}}.txt",
+			inputFileContent: "Hello, {{ .msg }}!",
+			expectedFileName: "input-test.txt",
+			expectedOutput:   "Hello, World!",
+			tome: Tome{
+				mode: 0777,
+				values: map[string]interface{}{
+					"msg":  "World",
+					"name": "test",
+				},
+			},
+		},
+		{
+			name:             "Keep Original Mode",
+			inputMode:        0444,
+			expectedMode:     0444,
+			inputFileName:    "input.txt",
+			inputFileContent: "Hello, World!",
+			expectedFileName: "input.txt",
+			expectedOutput:   "Hello, World!",
+		},
+		{
+			name:             "Dry run without creating file",
+			inputMode:        0644,
+			expectedMode:     0644,
+			inputFileName:    "input.txt",
+			expectedFileName: "input.txt",
+			dryRun:           true,
 		},
 	}
 
-	err = tome.Render(inputFile, true, false, true)
-	if err != nil {
-		t.Fatalf("Render failed: %v", err)
-	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tempDir := t.TempDir()
+			inputFile := filepath.Join(tempDir, tt.inputFileName)
+			outputDir := filepath.Join(tempDir, "output")
+			outputFile := filepath.Join(outputDir, tt.expectedFileName)
 
-	// Verify the output file exists
-	if _, err := os.Stat(outputFile); os.IsNotExist(err) {
-		t.Fatalf("Output file was not created")
-	}
+			// Create a mock input file with specific permissions
+			err := os.WriteFile(inputFile, []byte(tt.inputFileContent), tt.inputMode)
+			if err != nil {
+				t.Fatalf("Failed to create input file: %v", err)
+			}
 
-	// Verify the content of the output file
-	content, err := os.ReadFile(outputFile)
-	if err != nil {
-		t.Fatalf("Failed to read output file: %v", err)
-	}
+			tt.tome.source = tempDir
+			tt.tome.target = outputDir
 
-	expectedContent := "Hello, World!"
-	if string(content) != expectedContent {
-		t.Errorf("Output content mismatch. Expected: %q, Got: %q", expectedContent, string(content))
-	}
-}
+			err = tt.tome.Render(inputFile, true, tt.dryRun, tt.force)
+			assert.NoError(t, err, "Render should not return an error")
 
-func TestRenderDryRun(t *testing.T) {
-	tempDir := t.TempDir()
-	inputFile := filepath.Join(tempDir, "input.txt")
-	outputDir := filepath.Join(tempDir, "output")
+			if tt.dryRun {
+				// Verify the output file does not exist
+				if _, err := os.Stat(outputFile); !os.IsNotExist(err) {
+					t.Fatalf("Output file should not have been created")
+				}
+				return
+			}
 
-	// Create a mock input file
-	err := os.WriteFile(inputFile, []byte("Hello, {{ .Name }}!"), 0644)
-	if err != nil {
-		t.Fatalf("Failed to create input file: %v", err)
-	}
+			// Verify the output file exists
+			info, err := os.Stat(outputFile)
+			assert.NoError(t, err, "Output file should exist")
 
-	tome := &Tome{
-		Source: tempDir,
-		Target: outputDir,
-		Values: map[string]interface{}{
-			"Name": "World",
-		},
-	}
+			// Verify the file name
+			assert.Equal(t, tt.expectedFileName, info.Name(), "Output file name should match the expected name")
 
-	err = tome.Render(inputFile, true, true, false)
-	if err != nil {
-		t.Fatalf("Render failed: %v", err)
-	}
+			// Verify the file mode
+			assert.Equal(t, tt.expectedMode, info.Mode().Perm(), "File mode should match the specified mode")
 
-	// Verify the output file does not exist
-	outputFile := filepath.Join(outputDir, "input.txt")
-	if _, err := os.Stat(outputFile); !os.IsNotExist(err) {
-		t.Fatalf("Output file should not have been created in dry-run mode")
+			// Verify the content of the output file
+			content, err := os.ReadFile(outputFile)
+			assert.NoError(t, err, "Failed to read output file")
+			assert.Equal(t, tt.expectedOutput, string(content), "Output file content should match the expected content")
+		})
 	}
 }

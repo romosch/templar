@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -57,13 +58,13 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 		return fmt.Errorf("Error reading input file: %w", err)
 	}
 
-	relPath, err := filepath.Rel(t.Source, inputPath)
+	relPath, err := filepath.Rel(t.source, inputPath)
 	if err != nil {
 		return fmt.Errorf("Error getting relative path: %w", err)
 	}
 
-	if t.Strip != "" && filepath.Ext(relPath) == t.Strip {
-		relPath = relPath[:len(relPath)-len(t.Strip)]
+	if t.strip != "" && filepath.Ext(relPath) == t.strip {
+		relPath = relPath[:len(relPath)-len(t.strip)]
 	}
 
 	// Template the file name
@@ -72,12 +73,12 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 	if err != nil {
 		return fmt.Errorf("Error parsing filename template: %w", err)
 	}
-	err = tmpl.Execute(&templatedPath, t.Values)
+	err = tmpl.Execute(&templatedPath, t.values)
 	if err != nil {
 		return fmt.Errorf("Error templating filename: %w", err)
 	}
 
-	outputPath := filepath.Join(t.Target, templatedPath.String())
+	outputPath := filepath.Join(t.target, templatedPath.String())
 	copy := t.shouldCopy(inputPath)
 
 	if verbose {
@@ -120,10 +121,9 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 		}
 	}
 
-	// Apply updates
-	mode = updateRolePerms(mode, t.Permissions.User, 6)
-	mode = updateRolePerms(mode, t.Permissions.Group, 3)
-	mode = updateRolePerms(mode, t.Permissions.Other, 0)
+	if t.mode != 0 {
+		mode = t.mode
+	}
 
 	// Apply new permissions
 	if err := os.Chmod(outputPath, mode); err != nil {
@@ -139,35 +139,40 @@ func (t *Tome) Template(writer io.Writer, data []byte) error {
 	if err != nil {
 		return err
 	}
-	return tmpl.Execute(writer, t.Values)
+	return tmpl.Execute(writer, t.values)
 }
 
-func updateRolePerms(mode os.FileMode, frp FileRolePermission, shift uint) os.FileMode {
-	// Current bits
-	readBit := os.FileMode(04 << shift)
-	writeBit := os.FileMode(02 << shift)
-	execBit := os.FileMode(01 << shift)
+func ParseFileMode(modeStr string) (os.FileMode, error) {
+	// Try parsing as octal
+	if n, err := strconv.ParseUint(modeStr, 8, 32); err == nil {
+		return os.FileMode(n), nil
+	}
 
-	// Clear and set only if value is provided
-	if frp.Read != nil {
-		mode &^= readBit
-		if *frp.Read {
-			mode |= readBit
+	// If not octal, parse symbolic string
+	if len(modeStr) != 9 {
+		return 0, fmt.Errorf("invalid symbolic file mode: %s", modeStr)
+	}
+
+	var mode os.FileMode
+
+	symbols := []struct {
+		char byte
+		bit  os.FileMode
+	}{
+		{'r', 0400}, {'w', 0200}, {'x', 0100}, // user
+		{'r', 0040}, {'w', 0020}, {'x', 0010}, // group
+		{'r', 0004}, {'w', 0002}, {'x', 0001}, // others
+	}
+
+	for i, sym := range symbols {
+		if modeStr[i] == sym.char {
+			mode |= sym.bit
+		} else if modeStr[i] != '-' {
+			return 0, fmt.Errorf("unexpected character '%c' in symbolic mode", modeStr[i])
 		}
 	}
-	if frp.Write != nil {
-		mode &^= writeBit
-		if *frp.Write {
-			mode |= writeBit
-		}
-	}
-	if frp.Execute != nil {
-		mode &^= execBit
-		if *frp.Execute {
-			mode |= execBit
-		}
-	}
-	return mode
+
+	return mode, nil
 }
 
 func confirmOverwrite(path string) bool {

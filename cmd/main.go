@@ -29,16 +29,20 @@ func main() {
 		log.Fatalf("failed to load values: %v", err)
 	}
 
-	baseTome := tome.Tome{
-		Source:      args[0],
-		Target:      args[1],
-		Strip:       options.StripSuffix(),
-		Include:     options.IncludePatterns(),
-		Exclude:     options.ExcludePatterns(),
-		Copy:        options.CopyPatterns(),
-		Temp:        options.TempPatterns(),
-		Permissions: tome.FilePermissions{},
-		Values:      values,
+	baseTome, err := tome.New(
+		args[0],
+		args[1],
+		options.Mode(),
+		options.StripSuffix(),
+		options.IncludePatterns(),
+		options.ExcludePatterns(),
+		options.CopyPatterns(),
+		options.TempPatterns(),
+		values,
+	)
+
+	if err != nil {
+		log.Fatalf("failed to create base tome: %v", err)
 	}
 
 	if options.Verbose() {

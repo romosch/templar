@@ -1,44 +1,92 @@
 package tome
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
-	"templar/internal/options"
-
-	"gopkg.in/yaml.v3"
+	"strconv"
 )
 
-type FileRolePermission struct {
-	Read    *bool `yaml:"read"`
-	Write   *bool `yaml:"write"`
-	Execute *bool `yaml:"execute"`
-}
-
-type FilePermissions struct {
-	User  FileRolePermission `yaml:"user"`
-	Group FileRolePermission `yaml:"group"`
-	Other FileRolePermission `yaml:"other"`
-}
-
 type Tome struct {
-	Permissions FilePermissions `yaml:"permissions"`
-	Source      string
-	Target      string         `yaml:"target"`
-	Strip       string         `yaml:"strip"`
-	Include     []string       `yaml:"include"`
-	Exclude     []string       `yaml:"exclude"`
-	Copy        []string       `yaml:"copy"`
-	Temp        []string       `yaml:"temp"`
-	Values      map[string]any `yaml:"values"`
+	source  string
+	target  string
+	mode    os.FileMode
+	strip   string
+	include []string
+	exclude []string
+	copy    []string
+	temp    []string
+	values  map[string]any
+}
+
+func New(source, target, mode, strip string, include, exclude, copy, temp []string, values map[string]any) (*Tome, error) {
+
+	if len(include) > 0 && len(exclude) > 0 {
+		return nil, fmt.Errorf("cannot use both include and exclude patterns")
+	}
+
+	if len(copy) > 0 && len(temp) > 0 {
+		return nil, fmt.Errorf("cannot use both copy-only and template-only patterns")
+	}
+
+	var fileMode os.FileMode
+	var err error
+	if mode != "" {
+		fileMode, err = parseFileMode(mode)
+		if err != nil {
+			return nil, fmt.Errorf("invalid file mode: %w", err)
+		}
+	}
+
+	return &Tome{
+		source:  source,
+		target:  target,
+		mode:    fileMode,
+		strip:   strip,
+		include: include,
+		exclude: exclude,
+		copy:    copy,
+		temp:    temp,
+		values:  values,
+	}, nil
+}
+
+func parseFileMode(modeStr string) (os.FileMode, error) {
+	// Try parsing as octal
+	if n, err := strconv.ParseUint(modeStr, 8, 32); err == nil {
+		return os.FileMode(n), nil
+	}
+
+	// If not octal, parse symbolic string
+	if len(modeStr) != 9 {
+		return 0, fmt.Errorf("invalid symbolic file mode: %s", modeStr)
+	}
+
+	var mode os.FileMode
+
+	symbols := []struct {
+		char byte
+		bit  os.FileMode
+	}{
+		{'r', 0400}, {'w', 0200}, {'x', 0100}, // user
+		{'r', 0040}, {'w', 0020}, {'x', 0010}, // group
+		{'r', 0004}, {'w', 0002}, {'x', 0001}, // others
+	}
+
+	for i, sym := range symbols {
+		if modeStr[i] == sym.char {
+			mode |= sym.bit
+		} else if modeStr[i] != '-' {
+			return 0, fmt.Errorf("unexpected character '%c' in symbolic mode", modeStr[i])
+		}
+	}
+
+	return mode, nil
 }
 
 func (t *Tome) ShouldInclude(name string) bool {
-	if len(t.Include) > 0 {
-		for _, pattern := range t.Include {
+	if len(t.include) > 0 {
+		for _, pattern := range t.include {
 			if matches, _ := filepath.Match(pattern, name); matches {
 				return true
 			}
@@ -46,8 +94,8 @@ func (t *Tome) ShouldInclude(name string) bool {
 		return false
 	}
 
-	if len(t.Exclude) > 0 {
-		for _, pattern := range t.Exclude {
+	if len(t.exclude) > 0 {
+		for _, pattern := range t.exclude {
 			if matches, _ := filepath.Match(pattern, name); matches {
 				return false
 			}
@@ -58,8 +106,8 @@ func (t *Tome) ShouldInclude(name string) bool {
 }
 
 func (t *Tome) shouldCopy(name string) bool {
-	if len(t.Copy) > 0 {
-		for _, pattern := range t.Copy {
+	if len(t.copy) > 0 {
+		for _, pattern := range t.copy {
 			if matches, _ := filepath.Match(pattern, name); matches {
 				return true
 			}
@@ -67,8 +115,8 @@ func (t *Tome) shouldCopy(name string) bool {
 		return false
 	}
 
-	if len(t.Temp) > 0 {
-		for _, pattern := range t.Temp {
+	if len(t.temp) > 0 {
+		for _, pattern := range t.temp {
 			if matches, _ := filepath.Match(pattern, name); matches {
 				return false
 			}
@@ -77,129 +125,4 @@ func (t *Tome) shouldCopy(name string) bool {
 	}
 
 	return false
-}
-
-func Load(file string, base *Tome) ([]Tome, error) {
-	data, err := os.ReadFile(file)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read tome file: %w", err)
-	}
-	var templatedData bytes.Buffer
-	if options.Verbose() {
-		fmt.Printf("Templated tomes file %s\n", templatedData.String())
-	}
-	err = base.Template(&templatedData, data)
-
-	var tome Tome
-	var tomes []Tome
-	err = yaml.Unmarshal(templatedData.Bytes(), &tomes)
-	if err != nil {
-		err = yaml.Unmarshal(templatedData.Bytes(), &tomes)
-		if err != nil {
-			return nil, fmt.Errorf("invalid YAML in tome file: %w", err)
-		}
-		tomes = []Tome{tome}
-	}
-
-	dir := filepath.Dir(file)
-	rel, err := filepath.Rel(base.Source, dir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get relative path: %w", err)
-	}
-
-	for i, tome := range tomes {
-		tome.Source = dir
-		if tome.Target == "" {
-			tome.Target = filepath.Join(base.Target, rel)
-		} else if tome.Target[0] != '/' {
-			tome.Target = filepath.Join(filepath.Dir(filepath.Join(base.Target, rel)), tome.Target)
-		}
-
-		if len(tome.Values) == 0 {
-			tome.Values = base.Values
-		}
-
-		if tome.Strip == "" {
-			tome.Strip = base.Strip
-		}
-
-		if len(tome.Include) == 0 && len(tome.Exclude) == 0 {
-			tome.Include = base.Include
-			tome.Exclude = base.Exclude
-		}
-
-		if len(tome.Include) > 0 && len(tome.Exclude) > 0 {
-			return nil, fmt.Errorf("cannot use both include and exclude patterns in tome %d", i+1)
-		}
-
-		if len(tome.Copy) == 0 && len(tome.Temp) == 0 {
-			tome.Copy = base.Copy
-			tome.Temp = base.Temp
-		}
-
-		if len(tome.Copy) > 0 && len(tome.Temp) > 0 {
-			return nil, fmt.Errorf("cannot use both copy-only and template-only patterns in tome %d", i+1)
-		}
-
-		tomes[i] = tome
-	}
-
-	return tomes, nil
-}
-
-func (t *Tome) Walk(root string) error {
-	if filepath.Base(root) == ".tome.yaml" {
-		return nil
-	}
-	if !t.ShouldInclude(filepath.Base(root)) {
-		if options.Verbose() {
-			log.Print("Skipping:", filepath.Base(root))
-		}
-		return nil
-	}
-	info, err := os.Stat(root)
-	if err != nil {
-		return fmt.Errorf("failed to stat %s: %w", root, err)
-	}
-
-	if !info.IsDir() {
-		// If root is a file, apply the logic for individual files
-		err = t.Render(root, options.Verbose(), options.DryRun(), options.Force())
-		if err != nil {
-			return fmt.Errorf("failed to render file: %w", err)
-		}
-		return nil
-	}
-
-	entries, err := os.ReadDir(root)
-	if err != nil {
-		return fmt.Errorf("failed to read directory: %w", err)
-	}
-
-	tomesFile := filepath.Join(root, ".tome.yaml")
-	if _, err := os.Stat(tomesFile); errors.Is(err, os.ErrNotExist) {
-		// No tome
-		for _, entry := range entries {
-			err = t.Walk(filepath.Join(root, entry.Name()), t)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		// Tome found
-		subTomes, err := Load(tomesFile, t)
-		if err != nil {
-			return fmt.Errorf("failed to load tomes from %s: %w", tomesFile, err)
-		}
-		for _, subTome := range subTomes {
-			for _, entry := range entries {
-				err = subTome.Walk(filepath.Join(root, entry.Name()))
-				if err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	return nil
 }
