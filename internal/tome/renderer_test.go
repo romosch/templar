@@ -8,12 +8,12 @@ import (
 
 func TestRender(t *testing.T) {
 	tempDir := t.TempDir()
-	inputFile := filepath.Join(tempDir, "input.txt")
+	inputFile := filepath.Join(tempDir, "input-{{.name}}.txt")
 	outputDir := filepath.Join(tempDir, "output")
-	outputFile := filepath.Join(outputDir, "input.txt")
+	outputFile := filepath.Join(outputDir, "input-test.txt")
 
 	// Create a mock input file
-	err := os.WriteFile(inputFile, []byte("Hello, {{ .Name }}!"), 0644)
+	err := os.WriteFile(inputFile, []byte("Hello, {{ .msg }}!"), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create input file: %v", err)
 	}
@@ -22,7 +22,8 @@ func TestRender(t *testing.T) {
 		Source: tempDir,
 		Target: outputDir,
 		Values: map[string]interface{}{
-			"Name": "World",
+			"name": "test",
+			"msg":  "World",
 		},
 	}
 

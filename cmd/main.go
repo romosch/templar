@@ -7,7 +7,6 @@ import (
 	"templar/internal/options"
 	"templar/internal/tome"
 	"templar/internal/values"
-	"templar/internal/walker"
 )
 
 const Version = "v0.1.0"
@@ -46,7 +45,7 @@ func main() {
 		log.Printf("Base Tome: %+v", baseTome)
 	}
 
-	err = walker.Walk(args[0], &baseTome)
+	err = baseTome.Walk(args[0])
 	if err != nil {
 		log.Fatalf("error walking files: %v", err)
 	}

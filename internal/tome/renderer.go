@@ -66,7 +66,18 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 		relPath = relPath[:len(relPath)-len(t.Strip)]
 	}
 
-	outputPath := filepath.Join(t.Target, relPath)
+	// Template the file name
+	var templatedPath bytes.Buffer
+	tmpl, err := template.New("filename").Funcs(funcMap).Parse(relPath)
+	if err != nil {
+		return fmt.Errorf("Error parsing filename template: %w", err)
+	}
+	err = tmpl.Execute(&templatedPath, t.Values)
+	if err != nil {
+		return fmt.Errorf("Error templating filename: %w", err)
+	}
+
+	outputPath := filepath.Join(t.Target, templatedPath.String())
 	copy := t.shouldCopy(inputPath)
 
 	if verbose {
