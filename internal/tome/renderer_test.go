@@ -10,27 +10,32 @@ import (
 
 func TestRenderMatrix(t *testing.T) {
 	tests := []struct {
-		dryRun           bool
-		force            bool
-		inputMode        os.FileMode
-		expectedMode     os.FileMode
-		name             string
-		inputFileName    string
-		inputFileContent string
-		expectedOutput   string
-		expectedFileName string
-		tome             Tome
+		dryRun              bool
+		force               bool
+		inputMode           os.FileMode
+		expectedMode        os.FileMode
+		name                string
+		inputDirName        string
+		inputFileName       string
+		inputFileContent    string
+		expectedDirName     string
+		expectedFileContent string
+		expectedFileName    string
+		tome                Tome
 	}{
 		{
-			name:             "Replace placeholders and change mode",
-			inputMode:        0644,
-			expectedMode:     0777,
-			inputFileName:    "input-{{.name}}.txt",
-			inputFileContent: "Hello, {{ .msg }}!",
-			expectedFileName: "input-test.txt",
-			expectedOutput:   "Hello, World!",
+			name:                "Replace placeholders and change mode",
+			inputMode:           0644,
+			expectedMode:        0777,
+			inputDirName:        "input-{{.name}}.tmpl",
+			inputFileName:       "input-{{.name}}.txt.tmpl",
+			inputFileContent:    "Hello, {{ .msg }}!",
+			expectedDirName:     "input-test",
+			expectedFileName:    "input-test.txt",
+			expectedFileContent: "Hello, World!",
 			tome: Tome{
-				mode: 0777,
+				mode:  0777,
+				strip: ".tmpl",
 				values: map[string]interface{}{
 					"msg":  "World",
 					"name": "test",
@@ -38,13 +43,13 @@ func TestRenderMatrix(t *testing.T) {
 			},
 		},
 		{
-			name:             "Keep Original Mode",
-			inputMode:        0444,
-			expectedMode:     0444,
-			inputFileName:    "input.txt",
-			inputFileContent: "Hello, World!",
-			expectedFileName: "input.txt",
-			expectedOutput:   "Hello, World!",
+			name:                "Keep Original Mode",
+			inputMode:           0444,
+			expectedMode:        0444,
+			inputFileName:       "input.txt",
+			inputFileContent:    "Hello, World!",
+			expectedFileName:    "input.txt",
+			expectedFileContent: "Hello, World!",
 		},
 		{
 			name:             "Dry run without creating file",
@@ -59,12 +64,22 @@ func TestRenderMatrix(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tempDir := t.TempDir()
-			inputFile := filepath.Join(tempDir, tt.inputFileName)
+			inputDir := filepath.Join(tempDir, tt.inputDirName)
+			inputFile := filepath.Join(inputDir, tt.inputFileName)
 			outputDir := filepath.Join(tempDir, "output")
-			outputFile := filepath.Join(outputDir, tt.expectedFileName)
+			expectedDir := outputDir
+			if tt.expectedDirName != "" {
+				expectedDir = filepath.Join(outputDir, tt.expectedDirName)
+			}
+
+			expectedFile := filepath.Join(expectedDir, tt.expectedFileName)
 
 			// Create a mock input file with specific permissions
-			err := os.WriteFile(inputFile, []byte(tt.inputFileContent), tt.inputMode)
+			err := os.MkdirAll(inputDir, 0755)
+			if err != nil {
+				t.Fatalf("Failed to create input directory: %v", err)
+			}
+			err = os.WriteFile(inputFile, []byte(tt.inputFileContent), tt.inputMode)
 			if err != nil {
 				t.Fatalf("Failed to create input file: %v", err)
 			}
@@ -77,14 +92,18 @@ func TestRenderMatrix(t *testing.T) {
 
 			if tt.dryRun {
 				// Verify the output file does not exist
-				if _, err := os.Stat(outputFile); !os.IsNotExist(err) {
+				if _, err := os.Stat(expectedFile); !os.IsNotExist(err) {
 					t.Fatalf("Output file should not have been created")
 				}
 				return
 			}
 
 			// Verify the output file exists
-			info, err := os.Stat(outputFile)
+			info, err := os.Stat(expectedDir)
+			assert.NoError(t, err, "Output dir should exist")
+
+			// Verify the output file exists
+			info, err = os.Stat(expectedFile)
 			assert.NoError(t, err, "Output file should exist")
 
 			// Verify the file name
@@ -94,9 +113,9 @@ func TestRenderMatrix(t *testing.T) {
 			assert.Equal(t, tt.expectedMode, info.Mode().Perm(), "File mode should match the specified mode")
 
 			// Verify the content of the output file
-			content, err := os.ReadFile(outputFile)
+			content, err := os.ReadFile(expectedFile)
 			assert.NoError(t, err, "Failed to read output file")
-			assert.Equal(t, tt.expectedOutput, string(content), "Output file content should match the expected content")
+			assert.Equal(t, tt.expectedFileContent, string(content), "Output file content should match the expected content")
 		})
 	}
 }

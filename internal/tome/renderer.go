@@ -63,24 +63,27 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 		return fmt.Errorf("Error getting relative path: %w", err)
 	}
 
-	if t.strip != "" && filepath.Ext(relPath) == t.strip {
-		relPath = relPath[:len(relPath)-len(t.strip)]
-	}
-
 	// Template the file name
 	var templatedPath bytes.Buffer
-	tmpl, err := template.New("filename").Funcs(funcMap).Parse(relPath)
+	err = t.Template(&templatedPath, []byte(relPath))
 	if err != nil {
-		return fmt.Errorf("Error parsing filename template: %w", err)
-	}
-	err = tmpl.Execute(&templatedPath, t.values)
-	if err != nil {
-		return fmt.Errorf("Error templating filename: %w", err)
+		return fmt.Errorf("Error templating file name: %w", err)
 	}
 
 	outputPath := filepath.Join(t.target, templatedPath.String())
-	copy := t.shouldCopy(inputPath)
 
+	if t.strip != "" {
+		// Split the output path into directories
+		parts := strings.Split(outputPath, string(filepath.Separator))
+		for i, part := range parts {
+			// Strip the suffix from each part of the path
+			parts[i] = strings.TrimSuffix(part, t.strip)
+		}
+		// Rejoin the parts to form the new output path
+		outputPath = "/" + filepath.Join(parts...)
+	}
+
+	copy := t.shouldCopy(inputPath)
 	if verbose {
 		if copy {
 			log.Printf("Copying %s -> %s\n", inputPath, outputPath)
@@ -113,7 +116,6 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 		if err != nil {
 			return fmt.Errorf("Error creating output file: %w", err)
 		}
-
 		err = t.Template(outFile, content)
 		outFile.Close()
 		if err != nil {
@@ -134,7 +136,6 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 }
 
 func (t *Tome) Template(writer io.Writer, data []byte) error {
-	fmt.Printf("[templar] Templating %s\n", string(data))
 	tmpl, err := template.New("").Funcs(funcMap).Parse(string(data))
 	if err != nil {
 		return err
