@@ -11,6 +11,7 @@ var (
 	force           bool
 	showVersion     bool
 	showHelp        bool
+	strict          bool
 	mode            string
 	stripSuffix     string
 	args            []string
@@ -32,6 +33,7 @@ func Init() {
 	flag.BoolVar(&showHelp, "help", false, "Show help and exit")
 	flag.BoolVar(&dryRun, "dry-run", false, "Simulate actions without writing files")
 	flag.BoolVar(&verbose, "verbose", false, "Enable verbose logging")
+	flag.BoolVar(&strict, "strict", false, "Fail on missing values")
 	flag.Var(&values, "values", "Path to values YAML file (can be repeated)")
 	flag.Var(&setValues, "set", "Set a value (key=value) (can be repeated)")
 	flag.Var(&includePatterns, "include", "Glob pattern of files to include (can be repeated)")
@@ -59,8 +61,12 @@ func Force() bool {
 	return force
 }
 
-func ShowVersion() bool {
+func Version() bool {
 	return showVersion
+}
+
+func Strict() bool {
+	return strict
 }
 
 func ShowHelp() bool {

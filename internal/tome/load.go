@@ -30,8 +30,10 @@ func LoadTomeFile(file string, base *Tome) ([]*Tome, error) {
 	if options.Verbose() {
 		fmt.Printf("Templated tomes file %s\n", templatedData.String())
 	}
-	err = base.Template(&templatedData, data)
-
+	err = base.Template(&templatedData, string(data), file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to template tome file: %w", err)
+	}
 	var tomeConfig Config
 	var tomeConfigs []Config
 	err = yaml.Unmarshal(templatedData.Bytes(), &tomeConfigs)

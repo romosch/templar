@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"templar/internal/options"
 	"text/template"
-
-	"log"
+	"text/template/parse"
 
 	"github.com/Masterminds/sprig/v3"
 	"gopkg.in/yaml.v3"
@@ -65,7 +65,7 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 
 	// Template the file name
 	var templatedPath bytes.Buffer
-	err = t.Template(&templatedPath, []byte(relPath))
+	err = t.Template(&templatedPath, relPath, inputPath)
 	if err != nil {
 		return fmt.Errorf("Error templating file name: %w", err)
 	}
@@ -86,9 +86,9 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 	copy := t.shouldCopy(inputPath)
 	if verbose {
 		if copy {
-			log.Printf("Copying %s -> %s\n", inputPath, outputPath)
+			fmt.Printf("Copying %s -> %s\n", inputPath, outputPath)
 		} else {
-			log.Printf("Templating %s -> %s\n", inputPath, outputPath)
+			fmt.Printf("Templating %s -> %s\n", inputPath, outputPath)
 		}
 	}
 
@@ -116,10 +116,10 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 		if err != nil {
 			return fmt.Errorf("Error creating output file: %w", err)
 		}
-		err = t.Template(outFile, content)
+		err = t.Template(outFile, string(content), inputPath)
 		outFile.Close()
 		if err != nil {
-			return fmt.Errorf("Error templating file: %w", err)
+			return fmt.Errorf("Error templating %s: %w", inputPath, err)
 		}
 	}
 
@@ -135,10 +135,19 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 	return nil
 }
 
-func (t *Tome) Template(writer io.Writer, data []byte) error {
-	tmpl, err := template.New("").Funcs(funcMap).Parse(string(data))
+func (t *Tome) Template(writer io.Writer, text string, name string) error {
+	tmpl, err := template.New(name).Funcs(funcMap).Parse(text)
 	if err != nil {
 		return err
+	}
+	missingTemplateKeys, err := findMissingTemplateKeys(text, t.values)
+	if len(missingTemplateKeys) > 0 {
+		for _, missingKey := range missingTemplateKeys {
+			fmt.Printf("[templar] ⚠️  %s:%d:%d missing key '%s'\n", name, missingKey.Line, missingKey.Column, missingKey.Name)
+		}
+		if options.Strict() {
+			return errors.New("missing template keys not allowed in strict mode")
+		}
 	}
 	return tmpl.Execute(writer, t.values)
 }
@@ -177,9 +186,82 @@ func ParseFileMode(modeStr string) (os.FileMode, error) {
 }
 
 func confirmOverwrite(path string) bool {
-	log.Printf("[templar] ⚠️ '%s' already exists. Overwrite? [y/N]: ", path)
+	fmt.Printf("[templar] ⚠️  '%s' already exists. Overwrite? [y/N]: ", path)
 	reader := bufio.NewReader(os.Stdin)
 	answer, _ := reader.ReadString('\n')
 	answer = strings.ToLower(strings.TrimSpace(answer))
 	return answer == "y" || answer == "yes"
+}
+
+// MissingKey holds the name and position of a missing template key
+type MissingKey struct {
+	Name   string
+	Line   int
+	Column int
+}
+
+// FindMissingTemplateKeysWithPos parses the template and returns all keys
+// that are missing in the given values map, along with their line and column.
+func findMissingTemplateKeys(tmplStr string, values map[string]interface{}) ([]MissingKey, error) {
+	tmpl, err := template.New("tpl").Parse(tmplStr)
+	if err != nil {
+		return nil, fmt.Errorf("parsing template: %w", err)
+	}
+
+	var missing []MissingKey
+
+	// Split the template into lines for positional tracking
+	lines := strings.Split(tmplStr, "\n")
+
+	// Traverse the template AST
+	var walk func(node parse.Node)
+	walk = func(node parse.Node) {
+		switch n := node.(type) {
+		case *parse.ListNode:
+			for _, sub := range n.Nodes {
+				walk(sub)
+			}
+		case *parse.ActionNode:
+			walk(n.Pipe)
+		case *parse.PipeNode:
+			for _, cmd := range n.Cmds {
+				walk(cmd)
+			}
+		case *parse.CommandNode:
+			for _, arg := range n.Args {
+				walk(arg)
+			}
+		case *parse.FieldNode:
+			// .Field format, check the first part only (top-level)
+			if len(n.Ident) > 0 {
+				key := n.Ident[0]
+				if _, ok := values[key]; !ok {
+					line, col := positionFromOffset(n.Pos, tmplStr, lines)
+					missing = append(missing, MissingKey{Name: key, Line: line, Column: col})
+				}
+			}
+		case *parse.TemplateNode:
+			// Not processing nested templates for now
+		}
+	}
+
+	walk(tmpl.Tree.Root)
+
+	return missing, nil
+}
+
+// positionFromOffset returns the line and column number based on Pos
+func positionFromOffset(pos parse.Pos, full string, lines []string) (int, int) {
+	offset := int(pos) - 1 // Pos is 1-indexed
+
+	count := 0
+	for i, line := range lines {
+		lineLen := len(line) + 1 // +1 for the newline
+		if count+lineLen > offset {
+			col := offset - count + 1
+			return i + 1, col
+		}
+		count += lineLen
+	}
+	return 0, 0 // fallback
 }

@@ -1,9 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
-	"log"
 	"templar/internal/options"
 	"templar/internal/tome"
 	"templar/internal/values"
@@ -15,9 +15,14 @@ func main() {
 
 	options.Init()
 
+	if options.Version() {
+		fmt.Printf("templar %s\n", Version)
+		os.Exit(0)
+	}
+
 	args := options.Args()
 	if options.ShowHelp() || len(args) < 2 {
-		log.Print("Usage: templar [flags] <input-dir> <output-dir>")
+		fmt.Println("Usage: templar [flags] <input-dir> <output-dir>")
 		options.PrintDefaults()
 		if len(args) < 2 {
 			os.Exit(1)
@@ -26,7 +31,8 @@ func main() {
 
 	values, err := values.LoadAndMerge(options.Values(), options.SetVals())
 	if err != nil {
-		log.Fatalf("failed to load values: %v", err)
+		fmt.Printf("[templar] ❌  failed to load values: %v\n", err)
+		os.Exit(1)
 	}
 
 	baseTome, err := tome.New(
@@ -42,18 +48,20 @@ func main() {
 	)
 
 	if err != nil {
-		log.Fatalf("failed to create base tome: %v", err)
+		fmt.Printf("[templar] ❌  failed to create base tome: %v\n", err)
+		os.Exit(1)
 	}
 
 	if options.Verbose() {
-		log.Printf("Base Tome: %+v", baseTome)
+		fmt.Printf("Base Tome: %+v\n", baseTome)
 	}
 
 	err = baseTome.Walk(args[0])
 	if err != nil {
-		log.Fatalf("error walking files: %v", err)
+		fmt.Printf("[templar] ❌  error walking files: %v\n", err)
+		os.Exit(1)
 	}
 
-	log.Print("Template rendering complete.")
+	fmt.Println("[templar] ✅  Template rendering complete.")
 	os.Exit(0)
 }

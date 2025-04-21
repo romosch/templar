@@ -19,6 +19,11 @@ type Tome struct {
 	values  map[string]any
 }
 
+func (t *Tome) String() string {
+	return fmt.Sprintf("{source: %s, target: %s, mode: %o, strip: %s, include: %v, exclude: %v, copy: %v, temp: %v, values: %v}",
+		t.source, t.target, t.mode, t.strip, t.include, t.exclude, t.copy, t.temp, t.values)
+}
+
 func New(source, target, mode, strip string, include, exclude, copy, temp []string, values map[string]any) (*Tome, error) {
 
 	if len(include) > 0 && len(exclude) > 0 {

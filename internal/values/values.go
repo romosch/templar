@@ -11,8 +11,8 @@ import (
 
 var envVarRegexp = regexp.MustCompile(`\$\{([^}]+)\}`)
 
-func LoadAndMerge(valueFiles []string, setVals []string) (map[string]interface{}, error) {
-	final := map[string]interface{}{}
+func LoadAndMerge(valueFiles []string, setVals []string) (map[string]any, error) {
+	final := map[string]any{}
 
 	// Load values from files
 	for _, file := range valueFiles {
@@ -24,7 +24,7 @@ func LoadAndMerge(valueFiles []string, setVals []string) (map[string]interface{}
 		// Substitute environment variables before parsing
 		yamlText := substituteEnvVars(string(data))
 
-		var parsed map[string]interface{}
+		var parsed map[string]any
 		if err := yaml.Unmarshal([]byte(yamlText), &parsed); err != nil {
 			return nil, fmt.Errorf("invalid YAML in file %s: %w", file, err)
 		}
@@ -45,7 +45,7 @@ func LoadAndMerge(valueFiles []string, setVals []string) (map[string]interface{}
 }
 
 // Support nested keys like "app.name=foo"
-func setNestedValue(m map[string]interface{}, key string, value string) {
+func setNestedValue(m map[string]any, key string, value string) {
 	keys := strings.Split(key, ".")
 	last := len(keys) - 1
 
@@ -55,10 +55,10 @@ func setNestedValue(m map[string]interface{}, key string, value string) {
 			curr[k] = value
 			return
 		}
-		if next, ok := curr[k].(map[string]interface{}); ok {
+		if next, ok := curr[k].(map[string]any); ok {
 			curr = next
 		} else {
-			next := make(map[string]interface{})
+			next := make(map[string]any)
 			curr[k] = next
 			curr = next
 		}
@@ -66,10 +66,10 @@ func setNestedValue(m map[string]interface{}, key string, value string) {
 }
 
 // Merge src into dst
-func mergeMaps(dst, src map[string]interface{}) {
+func mergeMaps(dst, src map[string]any) {
 	for k, v := range src {
-		if vMap, ok := v.(map[string]interface{}); ok {
-			if dstMap, ok := dst[k].(map[string]interface{}); ok {
+		if vMap, ok := v.(map[string]any); ok {
+			if dstMap, ok := dst[k].(map[string]any); ok {
 				mergeMaps(dstMap, vMap)
 			} else {
 				dst[k] = vMap
