@@ -35,7 +35,7 @@ func TestRenderMatrix(t *testing.T) {
 			expectedFileContent: "Hello, World!",
 			tome: Tome{
 				mode:  0777,
-				strip: ".tmpl",
+				strip: []string{".tmpl"},
 				values: map[string]interface{}{
 					"msg":  "World",
 					"name": "test",

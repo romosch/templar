@@ -49,6 +49,14 @@ func TestShouldInclude(t *testing.T) {
 			input:    "file.txt",
 			expected: true,
 		},
+		{
+			name: "Match in subdir include",
+			tome: Tome{
+				include: []string{"**/*.txt"},
+			},
+			input:    "test/file.txt",
+			expected: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -71,9 +79,9 @@ func TestShouldCopy(t *testing.T) {
 		{
 			name: "Match in copy",
 			tome: Tome{
-				copy: []string{"*.txt"},
+				copy: []string{"**/*.txt"},
 			},
-			input:    "file.txt",
+			input:    "test/file.txt",
 			expected: true,
 		},
 		{

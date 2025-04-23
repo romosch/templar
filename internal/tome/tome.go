@@ -3,15 +3,16 @@ package tome
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strconv"
+
+	"github.com/bmatcuk/doublestar/v4"
 )
 
 type Tome struct {
 	source  string
 	target  string
 	mode    os.FileMode
-	strip   string
+	strip   []string
 	include []string
 	exclude []string
 	copy    []string
@@ -24,7 +25,7 @@ func (t *Tome) String() string {
 		t.source, t.target, t.mode, t.strip, t.include, t.exclude, t.copy, t.temp, t.values)
 }
 
-func New(source, target, mode, strip string, include, exclude, copy, temp []string, values map[string]any) (*Tome, error) {
+func New(source, target, mode string, strip, include, exclude, copy, temp []string, values map[string]any) (*Tome, error) {
 
 	if len(include) > 0 && len(exclude) > 0 {
 		return nil, fmt.Errorf("cannot use both include and exclude patterns")
@@ -91,20 +92,10 @@ func parseFileMode(modeStr string) (os.FileMode, error) {
 
 func (t *Tome) ShouldInclude(name string) bool {
 	if len(t.include) > 0 {
-		for _, pattern := range t.include {
-			if matches, _ := filepath.Match(pattern, name); matches {
-				return true
-			}
-		}
-		return false
+		return matchPatterns(t.include, name)
 	}
-
 	if len(t.exclude) > 0 {
-		for _, pattern := range t.exclude {
-			if matches, _ := filepath.Match(pattern, name); matches {
-				return false
-			}
-		}
+		return !matchPatterns(t.exclude, name)
 	}
 
 	return true
@@ -112,22 +103,24 @@ func (t *Tome) ShouldInclude(name string) bool {
 
 func (t *Tome) shouldCopy(name string) bool {
 	if len(t.copy) > 0 {
-		for _, pattern := range t.copy {
-			if matches, _ := filepath.Match(pattern, name); matches {
-				return true
-			}
-		}
-		return false
+		return matchPatterns(t.copy, name)
 	}
-
 	if len(t.temp) > 0 {
-		for _, pattern := range t.temp {
-			if matches, _ := filepath.Match(pattern, name); matches {
-				return false
-			}
-		}
-		return true
+		return !matchPatterns(t.temp, name)
 	}
+	return false
+}
 
+func matchPatterns(patterns []string, name string) bool {
+	for _, pattern := range patterns {
+		matched, err := doublestar.PathMatch(pattern, name)
+		if err != nil {
+			fmt.Println("Error:", err)
+			continue
+		}
+		if matched {
+			return true
+		}
+	}
 	return false
 }

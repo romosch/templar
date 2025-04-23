@@ -13,7 +13,7 @@ import (
 type Config struct {
 	Mode    string         `yaml:"mode"`
 	Target  string         `yaml:"target"`
-	Strip   string         `yaml:"strip"`
+	Strip   []string       `yaml:"strip"`
 	Include []string       `yaml:"include"`
 	Exclude []string       `yaml:"exclude"`
 	Copy    []string       `yaml:"copy"`
@@ -61,9 +61,13 @@ func LoadTomeFile(file string, base *Tome) ([]*Tome, error) {
 		}
 		if len(tomeConfig.Values) == 0 {
 			tomeConfig.Values = base.values
+		} else {
+			for key, value := range base.values {
+				tomeConfig.Values[key] = value
+			}
 		}
 
-		if tomeConfig.Strip == "" {
+		if len(tomeConfig.Strip) == 0 {
 			tomeConfig.Strip = base.strip
 		}
 

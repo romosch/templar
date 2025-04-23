@@ -72,12 +72,17 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 
 	outputPath := filepath.Join(t.target, templatedPath.String())
 
-	if t.strip != "" {
+	if len(t.strip) > 0 {
 		// Split the output path into directories
 		parts := strings.Split(outputPath, string(filepath.Separator))
 		for i, part := range parts {
 			// Strip the suffix from each part of the path
-			parts[i] = strings.TrimSuffix(part, t.strip)
+			for _, s := range t.strip {
+				if strings.HasSuffix(part, s) {
+					parts[i] = strings.TrimSuffix(part, s)
+					break
+				}
+			}
 		}
 		// Rejoin the parts to form the new output path
 		outputPath = "/" + filepath.Join(parts...)

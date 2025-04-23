@@ -22,7 +22,8 @@ func TestLoad(t *testing.T) {
 			name: "Valid single tome",
 			fileContent: `
 - target: "custom-target"
-  strip: "custom-strip"
+  strip: 
+  - "custom-strip"
   include: ["custom-include"]
   values:
     key: "custom-value"
@@ -33,7 +34,7 @@ func TestLoad(t *testing.T) {
 			expected: []Tome{
 				{
 					target:  "/tmp/custom-target",
-					strip:   "custom-strip",
+					strip:   []string{"custom-strip"},
 					include: []string{"custom-include"},
 					values:  map[string]any{"key": "custom-value"},
 				},
@@ -47,7 +48,7 @@ func TestLoad(t *testing.T) {
 `,
 			base: Tome{
 				target:  "/tmp/target",
-				strip:   "default-strip",
+				strip:   []string{"default-strip"},
 				exclude: []string{"default-exclude"},
 				temp:    []string{"default-temp"},
 				values:  map[string]any{"key": "value"},
@@ -55,7 +56,7 @@ func TestLoad(t *testing.T) {
 			expected: []Tome{
 				{
 					target:  "/tmp/target/{{ .tempdir }}",
-					strip:   "default-strip",
+					strip:   []string{"default-strip"},
 					exclude: []string{"default-exclude"},
 					temp:    []string{"default-temp"},
 					values:  map[string]any{"key": "value"},
