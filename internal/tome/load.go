@@ -38,7 +38,7 @@ func LoadTomeFile(file string, base *Tome) ([]*Tome, error) {
 	var tomeConfigs []Config
 	err = yaml.Unmarshal(templatedData.Bytes(), &tomeConfigs)
 	if err != nil {
-		err = yaml.Unmarshal(templatedData.Bytes(), &tomeConfigs)
+		err = yaml.Unmarshal(templatedData.Bytes(), &tomeConfig)
 		if err != nil {
 			return nil, fmt.Errorf("invalid YAML in tome file: %w", err)
 		}

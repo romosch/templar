@@ -19,14 +19,48 @@ func TestLoad(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name: "Valid single tome",
+			name: "Valid multiple tomes",
 			fileContent: `
-- target: "custom-target"
+- target: "custom-target1"
   strip: 
   - "custom-strip"
   include: ["custom-include"]
   values:
     key: "custom-value"
+- target: "custom-target2"
+  mode: 0777
+  exclude: ["custom-exclude"]
+  values:
+    key: "custom-value2"
+`,
+			base: Tome{
+				target: "/tmp",
+			},
+			expected: []Tome{
+				{
+					target:  "/tmp/custom-target1",
+					strip:   []string{"custom-strip"},
+					include: []string{"custom-include"},
+					values:  map[string]any{"key": "custom-value"},
+				},
+				{
+					target:  "/tmp/custom-target2",
+					mode:    0777,
+					exclude: []string{"custom-exclude"},
+					values:  map[string]any{"key": "custom-value2"},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "Valid single tome",
+			fileContent: `
+target: "custom-target"
+strip: 
+- "custom-strip"
+include: ["custom-include"]
+values:
+  key: "custom-value"
 `,
 			base: Tome{
 				target: "/tmp",
