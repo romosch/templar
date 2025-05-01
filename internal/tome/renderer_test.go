@@ -119,3 +119,43 @@ func TestRenderMatrix(t *testing.T) {
 		})
 	}
 }
+
+func TestRenderImport(t *testing.T) {
+	tempDir := t.TempDir()
+	inputFile := filepath.Join(tempDir, "input.txt")
+	inputFileContent := `{{ import "import.txt" }}`
+	importFile := filepath.Join(tempDir, "import.txt")
+	importFileContent := "{{ .msg }}"
+
+	expectedFileContent := "Hello, World!"
+
+	err := os.WriteFile(inputFile, []byte(inputFileContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create input file: %v", err)
+	}
+
+	err = os.WriteFile(importFile, []byte(importFileContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create import file: %v", err)
+	}
+
+	tome := Tome{
+		source: tempDir,
+		target: tempDir,
+		values: map[string]interface{}{
+			"msg": "Hello, World!",
+		},
+	}
+
+	err = tome.Render(inputFile, true, false, true)
+	assert.NoError(t, err, "Render should not return an error")
+
+	// Verify the output file exists
+	_, err = os.Stat(inputFile)
+	assert.NoError(t, err, "Output file should exist")
+
+	// Verify the content of the output file
+	content, err := os.ReadFile(inputFile)
+	assert.NoError(t, err, "Failed to read output file")
+	assert.Equal(t, expectedFileContent, string(content), "Output file content should match the expected content")
+}

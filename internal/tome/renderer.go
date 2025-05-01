@@ -37,12 +37,22 @@ func indent(spaces int, text string) string {
 	return strings.Join(lines, "\n")
 }
 
-var funcMap template.FuncMap
-
-func init() {
-	funcMap = sprig.TxtFuncMap() // All Sprig helpers
-	funcMap["toYaml"] = toYaml
-	funcMap["indent"] = indent
+func (t *Tome) importContent(path string) (string, error) {
+	// Read the file content
+	if path[0] != '/' {
+		path = filepath.Join(t.source, path)
+	}
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("Error reading file %s: %w", path, err)
+	}
+	var templatedContent bytes.Buffer
+	err = t.Template(&templatedContent, string(content), path)
+	if err != nil {
+		return "", fmt.Errorf("Error templating import: %w", err)
+	}
+	// Convert the content to a string
+	return string(templatedContent.Bytes()), nil
 }
 
 func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
@@ -145,6 +155,14 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 }
 
 func (t *Tome) Template(writer io.Writer, text string, name string) error {
+
+	var funcMap template.FuncMap
+
+	funcMap = sprig.TxtFuncMap()
+	funcMap["toYaml"] = toYaml
+	funcMap["indent"] = indent
+	funcMap["import"] = t.importContent
+
 	tmpl, err := template.New(name).Funcs(funcMap).Parse(text)
 	if err != nil {
 		return err
