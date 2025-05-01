@@ -44,6 +44,9 @@ func LoadTomeFile(file string, base *Tome) ([]*Tome, error) {
 		}
 		tomeConfigs = []Config{tomeConfig}
 	}
+	if len(tomeConfigs) == 0 {
+		return nil, fmt.Errorf("no tomes found in tome file")
+	}
 
 	dir := filepath.Dir(file)
 	rel, err := filepath.Rel(base.source, dir)
