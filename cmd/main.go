@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"templar/internal/options"
 	"templar/internal/tome"
@@ -35,9 +36,24 @@ func main() {
 		os.Exit(1)
 	}
 
+	info, err := os.Stat(args[0])
+	if err != nil {
+		fmt.Printf("[templar] ❌  failed to access input path: %v\n", err)
+		os.Exit(1)
+	}
+	source := args[0]
+	if !info.IsDir() {
+		source = filepath.Dir(args[0])
+	}
+	target := args[1]
+	info, err = os.Stat(args[1])
+	if err == nil && !info.IsDir() {
+		target = filepath.Dir(args[1])
+	}
+
 	baseTome, err := tome.New(
-		args[0],
-		args[1],
+		source,
+		target,
 		options.Mode(),
 		options.StripSuffix(),
 		options.IncludePatterns(),
