@@ -67,7 +67,7 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 	var templatedPath bytes.Buffer
 	err = t.Template(&templatedPath, relPath, inputPath)
 	if err != nil {
-		return fmt.Errorf("Error templating file name: %w", err)
+		return fmt.Errorf("Error templating name: %w", err)
 	}
 
 	outputPath := filepath.Join(t.target, templatedPath.String())
@@ -85,7 +85,11 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 			}
 		}
 		// Rejoin the parts to form the new output path
-		outputPath = "/" + filepath.Join(parts...)
+		if outputPath[0] == '/' {
+			outputPath = "/" + filepath.Join(parts...)
+		} else {
+			outputPath = filepath.Join(parts...)
+		}
 	}
 
 	copy := t.shouldCopy(inputPath)
@@ -124,7 +128,7 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 		err = t.Template(outFile, string(content), inputPath)
 		outFile.Close()
 		if err != nil {
-			return fmt.Errorf("Error templating %s: %w", inputPath, err)
+			return fmt.Errorf("Error templating contents: %w", err)
 		}
 	}
 
