@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -52,7 +53,7 @@ func setNestedValue(m map[string]any, key string, value string) {
 	curr := m
 	for i, k := range keys {
 		if i == last {
-			curr[k] = value
+			curr[k] = parseYAMLValue(value)
 			return
 		}
 		if next, ok := curr[k].(map[string]any); ok {
@@ -98,4 +99,42 @@ func substituteEnvVars(yamlContent string) string {
 	yamlContent = strings.ReplaceAll(yamlContent, "__ESCAPED_VAR__END__", "}")
 
 	return yamlContent
+}
+
+func parseYAMLValue(value string) any {
+	// Check for booleans
+	if value == "true" || value == "True" {
+		return true
+	}
+	if value == "false" || value == "False" {
+		return false
+	}
+
+	// Check for null
+	if value == "null" || value == "~" {
+		return nil
+	}
+
+	// Check for integers
+	if intVal, err := strconv.Atoi(value); err == nil {
+		return intVal
+	}
+
+	// Check for floats
+	if floatVal, err := strconv.ParseFloat(value, 64); err == nil {
+		return floatVal
+	}
+
+	// Check for lists
+	if strings.HasPrefix(value, "{") && strings.HasSuffix(value, "}") {
+		trimmed := strings.Trim(value, "{}")
+		parts := strings.Split(trimmed, ",")
+		for i := range parts {
+			parts[i] = strings.TrimSpace(parts[i])
+		}
+		return parts
+	}
+
+	// Default to string
+	return value
 }
