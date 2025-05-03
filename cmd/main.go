@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"templar/internal/options"
 	"templar/internal/tome"
@@ -22,12 +21,13 @@ func main() {
 	}
 
 	args := options.Args()
-	if options.ShowHelp() || len(args) < 2 {
-		fmt.Println("Usage: templar [flags] <input-dir> <output-dir>")
+	if options.ShowHelp() || len(args) != 1 {
+		fmt.Println("Usage: templar [flags] <input dir/file>")
 		options.PrintDefaults()
-		if len(args) < 2 {
+		if len(args) < 1 {
 			os.Exit(1)
 		}
+		os.Exit(0)
 	}
 
 	values, err := values.LoadAndMerge(options.Values(), options.SetVals())
@@ -41,19 +41,10 @@ func main() {
 		fmt.Printf("[templar] ❌  failed to access input path: %v\n", err)
 		os.Exit(1)
 	}
-	source := args[0]
-	if !info.IsDir() {
-		source = filepath.Dir(args[0])
-	}
-	target := args[1]
-	info, err = os.Stat(args[1])
-	if err == nil && !info.IsDir() {
-		target = filepath.Dir(args[1])
-	}
 
 	baseTome, err := tome.New(
-		source,
-		target,
+		args[0],
+		options.Output(),
 		options.Mode(),
 		options.StripSuffix(),
 		options.IncludePatterns(),
@@ -66,6 +57,31 @@ func main() {
 	if err != nil {
 		fmt.Printf("[templar] ❌  failed to create base tome: %v\n", err)
 		os.Exit(1)
+	}
+
+	if !info.IsDir() {
+		content, err := os.ReadFile(args[0])
+		if err != nil {
+			fmt.Printf("[templar] ❌  failed to read input file: %v\n", err)
+			os.Exit(1)
+		}
+
+		writer := os.Stdout
+		if options.Output() != "" {
+			writer, err = os.Create(options.Output())
+			if err != nil {
+				fmt.Printf("[templar] ❌  failed to create output file: %v\n", err)
+				os.Exit(1)
+			}
+			defer writer.Close()
+		}
+
+		err = baseTome.Template(writer, string(content), args[0])
+		if err != nil {
+			fmt.Printf("[templar] ❌  error templating file: %v\n", err)
+			os.Exit(1)
+		}
+		os.Exit(0)
 	}
 
 	if options.Verbose() {

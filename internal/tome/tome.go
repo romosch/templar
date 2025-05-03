@@ -3,6 +3,7 @@ package tome
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/bmatcuk/doublestar/v4"
@@ -92,10 +93,10 @@ func parseFileMode(modeStr string) (os.FileMode, error) {
 
 func (t *Tome) ShouldInclude(name string) bool {
 	if len(t.include) > 0 {
-		return matchPatterns(t.include, name)
+		return t.matchPatterns(t.include, name)
 	}
 	if len(t.exclude) > 0 {
-		return !matchPatterns(t.exclude, name)
+		return !t.matchPatterns(t.exclude, name)
 	}
 
 	return true
@@ -103,16 +104,19 @@ func (t *Tome) ShouldInclude(name string) bool {
 
 func (t *Tome) shouldCopy(name string) bool {
 	if len(t.copy) > 0 {
-		return matchPatterns(t.copy, name)
+		return t.matchPatterns(t.copy, name)
 	}
 	if len(t.temp) > 0 {
-		return !matchPatterns(t.temp, name)
+		return t.matchPatterns(t.temp, name)
 	}
 	return false
 }
 
-func matchPatterns(patterns []string, name string) bool {
+func (t *Tome) matchPatterns(patterns []string, name string) bool {
 	for _, pattern := range patterns {
+		if pattern[0] != '/' {
+			pattern = filepath.Join(t.source, pattern)
+		}
 		matched, err := doublestar.PathMatch(pattern, name)
 		if err != nil {
 			fmt.Println("Error:", err)

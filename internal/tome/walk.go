@@ -27,7 +27,7 @@ func (t *Tome) Walk(root string) error {
 	if filepath.Base(root) == ".tome.yaml" {
 		return nil
 	}
-	if !t.ShouldInclude(filepath.Base(root)) {
+	if !t.ShouldInclude(root) {
 		if options.Verbose() {
 			fmt.Println("[templar] Skipping:", filepath.Base(root))
 		}

@@ -26,6 +26,14 @@ func toYaml(v interface{}) (string, error) {
 	return buf.String(), err
 }
 
+func seq(until int) []int {
+	seq := make([]int, until)
+	for i := 0; i < until; i++ {
+		seq[i] = i + 1
+	}
+	return seq
+}
+
 func indent(spaces int, text string) string {
 	padding := strings.Repeat(" ", spaces)
 	lines := strings.Split(text, "\n")
@@ -160,6 +168,7 @@ func (t *Tome) Template(writer io.Writer, text string, name string) error {
 
 	funcMap = sprig.TxtFuncMap()
 	funcMap["toYaml"] = toYaml
+	funcMap["seq"] = seq
 	funcMap["indent"] = indent
 	funcMap["import"] = t.importContent
 
