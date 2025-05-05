@@ -33,7 +33,7 @@ func (t *Tome) Walk(root string) error {
 		}
 		return nil
 	}
-	info, err := os.Stat(root)
+	info, err := os.Lstat(root)
 	if err != nil {
 		return fmt.Errorf("failed to stat %s: %w", root, err)
 	}

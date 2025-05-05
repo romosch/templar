@@ -16,28 +16,16 @@ import (
 )
 
 func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
-	// Get current file mode
-	info, err := os.Lstat(inputPath)
-	if err != nil {
-		return fmt.Errorf("Error stating input file: %w", err)
-	}
-	mode := info.Mode().Perm() // os.FileMode with only permission bits
-
-	content, err := os.ReadFile(inputPath)
-	if err != nil {
-		return fmt.Errorf("Error reading input file: %w", err)
-	}
-
 	relPath, err := filepath.Rel(t.source, inputPath)
 	if err != nil {
-		return fmt.Errorf("Error getting relative path: %w", err)
+		return fmt.Errorf("error getting relative path: %w", err)
 	}
 
 	// Template the file name
 	var templatedPath bytes.Buffer
 	err = t.Template(&templatedPath, relPath, inputPath)
 	if err != nil {
-		return fmt.Errorf("Error templating name: %w", err)
+		return fmt.Errorf("error templating name: %w", err)
 	}
 
 	outputPath := filepath.Join(t.target, templatedPath.String())
@@ -61,6 +49,13 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 			outputPath = filepath.Join(parts...)
 		}
 	}
+
+	// Get current file mode
+	info, err := os.Lstat(inputPath)
+	if err != nil {
+		return fmt.Errorf("error stating input file: %w", err)
+	}
+
 	symlink := (info.Mode() & os.ModeSymlink) != 0
 	copy := t.shouldCopy(inputPath)
 	if verbose {
@@ -77,7 +72,7 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 
 	err = os.MkdirAll(filepath.Dir(outputPath), 0755)
 	if err != nil {
-		return fmt.Errorf("Error creating output directory: %w", err)
+		return fmt.Errorf("error creating output directory: %w", err)
 	}
 
 	if _, err := os.Stat(outputPath); !errors.Is(err, os.ErrNotExist) &&
@@ -93,7 +88,15 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 		if err := os.Symlink(target, outputPath); err != nil {
 			return fmt.Errorf("symlink %q -> %q at %q: %w", inputPath, target, outputPath, err)
 		}
-	} else if copy {
+		return nil
+	}
+
+	content, err := os.ReadFile(inputPath)
+	if err != nil {
+		return fmt.Errorf("error reading input file: %w", err)
+	}
+	mode := info.Mode().Perm()
+	if copy {
 		err = os.WriteFile(outputPath, content, mode)
 		if err != nil {
 			return err
@@ -101,12 +104,12 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 	} else {
 		outFile, err := os.Create(outputPath)
 		if err != nil {
-			return fmt.Errorf("Error creating output file: %w", err)
+			return fmt.Errorf("error creating output file: %w", err)
 		}
 		err = t.Template(outFile, string(content), inputPath)
 		outFile.Close()
 		if err != nil {
-			return fmt.Errorf("Error templating contents: %w", err)
+			return fmt.Errorf("error templating contents: %w", err)
 		}
 	}
 
@@ -116,7 +119,7 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 
 	// Apply new permissions
 	if err := os.Chmod(outputPath, mode); err != nil {
-		return fmt.Errorf("Error setting file permissions: %w", err)
+		return fmt.Errorf("error setting file permissions: %w", err)
 	}
 
 	return nil
@@ -128,7 +131,10 @@ func (t *Tome) Template(writer io.Writer, text string, name string) error {
 		return err
 	}
 
-	missingTemplateKeys, err := findMissingTemplateKeys(text, t.values)
+	missingTemplateKeys, err := findMissingTemplateKeys(tmpl, text, t.values)
+	if err != nil {
+		return fmt.Errorf("error finding missing template keys for %s: %w", name, err)
+	}
 	if len(missingTemplateKeys) > 0 {
 		for _, missingKey := range missingTemplateKeys {
 			fmt.Printf("[templar] ⚠️  %s:%d:%d missing key '%s'\n", name, missingKey.Line, missingKey.Column, missingKey.Name)
@@ -190,12 +196,7 @@ type MissingKey struct {
 
 // FindMissingTemplateKeysWithPos parses the template and returns all keys
 // that are missing in the given values map, along with their line and column.
-func findMissingTemplateKeys(tmplStr string, values map[string]interface{}) ([]MissingKey, error) {
-	tmpl, err := template.New("tpl").Parse(tmplStr)
-	if err != nil {
-		return nil, fmt.Errorf("parsing template: %w", err)
-	}
-
+func findMissingTemplateKeys(tmpl *template.Template, tmplStr string, values map[string]interface{}) ([]MissingKey, error) {
 	var missing []MissingKey
 
 	// Split the template into lines for positional tracking
@@ -224,7 +225,7 @@ func findMissingTemplateKeys(tmplStr string, values map[string]interface{}) ([]M
 			if len(n.Ident) > 0 {
 				key := n.Ident[0]
 				if _, ok := values[key]; !ok {
-					line, col := positionFromOffset(n.Pos, tmplStr, lines)
+					line, col := positionFromOffset(n.Pos, lines)
 					missing = append(missing, MissingKey{Name: key, Line: line, Column: col})
 				}
 			}
@@ -239,7 +240,7 @@ func findMissingTemplateKeys(tmplStr string, values map[string]interface{}) ([]M
 }
 
 // positionFromOffset returns the line and column number based on Pos
-func positionFromOffset(pos parse.Pos, full string, lines []string) (int, int) {
+func positionFromOffset(pos parse.Pos, lines []string) (int, int) {
 	offset := int(pos) - 1 // Pos is 1-indexed
 
 	count := 0
