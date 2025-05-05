@@ -1,6 +1,7 @@
 package tome
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -123,7 +124,7 @@ func TestRenderMatrix(t *testing.T) {
 func TestRenderImport(t *testing.T) {
 	tempDir := t.TempDir()
 	inputFile := filepath.Join(tempDir, "input.txt")
-	inputFileContent := `{{ import "import.txt" }}`
+	inputFileContent := `{{ include "import.txt" }}`
 	importFile := filepath.Join(tempDir, "import.txt")
 	importFileContent := "{{ .msg }}"
 
@@ -158,4 +159,17 @@ func TestRenderImport(t *testing.T) {
 	content, err := os.ReadFile(inputFile)
 	assert.NoError(t, err, "Failed to read output file")
 	assert.Equal(t, expectedFileContent, string(content), "Output file content should match the expected content")
+}
+
+func TestRenderRequired(t *testing.T) {
+	tome := Tome{
+		values: map[string]interface{}{
+			"msg": "Hello, World!",
+		},
+	}
+	err := tome.Template(io.Discard, "{{ required .msg }}", "input.txt")
+	assert.NoError(t, err, "Render should not return an error")
+
+	err = tome.Template(io.Discard, "{{ required .missing }}", "input.txt")
+	assert.Error(t, err, "Render should return an error for missing required value")
 }

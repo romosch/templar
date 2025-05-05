@@ -1,0 +1,6 @@
+{{- range $i := seq .n }}
+- inlcude: 
+  - bar-*.txt
+  values:
+    i: {{ $i }}
+{{- end }}

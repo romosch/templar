@@ -13,55 +13,7 @@ import (
 	"templar/internal/options"
 	"text/template"
 	"text/template/parse"
-
-	"github.com/Masterminds/sprig/v3"
-	"gopkg.in/yaml.v3"
 )
-
-func toYaml(v interface{}) (string, error) {
-	buf := new(bytes.Buffer)
-	enc := yaml.NewEncoder(buf)
-	enc.SetIndent(2)
-	err := enc.Encode(v)
-	return buf.String(), err
-}
-
-func seq(until int) []int {
-	seq := make([]int, until)
-	for i := 0; i < until; i++ {
-		seq[i] = i + 1
-	}
-	return seq
-}
-
-func indent(spaces int, text string) string {
-	padding := strings.Repeat(" ", spaces)
-	lines := strings.Split(text, "\n")
-	for i, line := range lines {
-		if strings.TrimSpace(line) != "" {
-			lines[i] = padding + line
-		}
-	}
-	return strings.Join(lines, "\n")
-}
-
-func (t *Tome) importContent(path string) (string, error) {
-	// Read the file content
-	if path[0] != '/' {
-		path = filepath.Join(t.source, path)
-	}
-	content, err := os.ReadFile(path)
-	if err != nil {
-		return "", fmt.Errorf("Error reading file %s: %w", path, err)
-	}
-	var templatedContent bytes.Buffer
-	err = t.Template(&templatedContent, string(content), path)
-	if err != nil {
-		return "", fmt.Errorf("Error templating import: %w", err)
-	}
-	// Convert the content to a string
-	return string(templatedContent.Bytes()), nil
-}
 
 func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 	// Get current file mode
@@ -163,19 +115,11 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 }
 
 func (t *Tome) Template(writer io.Writer, text string, name string) error {
-
-	var funcMap template.FuncMap
-
-	funcMap = sprig.TxtFuncMap()
-	funcMap["toYaml"] = toYaml
-	funcMap["seq"] = seq
-	funcMap["indent"] = indent
-	funcMap["import"] = t.importContent
-
-	tmpl, err := template.New(name).Funcs(funcMap).Parse(text)
+	tmpl, err := template.New(name).Funcs(t.funcMap(filepath.Dir(name))).Parse(text)
 	if err != nil {
 		return err
 	}
+
 	missingTemplateKeys, err := findMissingTemplateKeys(text, t.values)
 	if len(missingTemplateKeys) > 0 {
 		for _, missingKey := range missingTemplateKeys {

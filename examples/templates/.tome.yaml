@@ -1,0 +1,5 @@
+{{ $other := ternary "foo" "bar" (eq .test "bar") }}
+exclude:
+- files.{{ $other }}
+strip: 
+- .{{ required .test }}

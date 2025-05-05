@@ -40,7 +40,7 @@ func Init() {
 	flag.StringVarP(&mode, "mode", "m", "", "Set file mode (permissions) for created files (octal or symbolic)")
 	flag.StringVarP(&out, "out", "o", "", "Output directory for generated files (default: standard output)")
 	flag.StringSliceVarP(&values, "values", "v", []string{}, "Path to values YAML file (can be repeated)")
-	flag.StringSliceVarP(&setValues, "s", "s", []string{}, "Set a value (key=value) (can be repeated)")
+	flag.StringSliceVarP(&setValues, "set", "s", []string{}, "Set a value (key=value) (can be repeated)")
 	flag.StringSliceVarP(&includePatterns, "include", "i", []string{}, "Glob pattern of files to include (can be repeated)")
 	flag.StringSliceVarP(&excludePatterns, "exclude", "e", []string{}, "Glob pattern of files to exclude (can be repeated)")
 	flag.StringSliceVarP(&copyPatterns, "copy", "c", []string{}, "Glob pattern for files to copy without templating (can be repeated)")

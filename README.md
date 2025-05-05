@@ -8,15 +8,14 @@ Templar is ideal for generating config files, scaffolding projects, or automatin
 ## ✨ Features
 
 - Directory-aware templating: Template entire directory trees, not just individual files.
-- Control files (Tomes) define generation rules locally, per directory, similar to a Makefile for templates.
-- Tomes can be templated themselves, enabling dynamic output directroy structures.
-- Multiple outputs: Generate many outputs from a single template source using dynamic values.
+- Control files (Tomes) define generation rules locally, per directory, (similar to a Makefile for templates).
+- Tomes are templated themselves, as well as file- and directory names, allowing for dynamic output directroy structures.
 - Go templates + Sprig functions: Powerful templating features out of the box.
 
 ## 📦 Installation
-
-Download a prebuilt binary from the Releases page.
-
+### Download
+Download a prebuilt binary from the [Releases](/romosch/templar/releases).
+### Clone/Build
 1. Clone the repository:
     ```bash
     git clone https://github.com/your-username/templar.git
@@ -31,21 +30,26 @@ Download a prebuilt binary from the Releases page.
 ## 🛠️ Usage
 
 ```bash
-templar [options] <input> <output>
+templar [options] <input dir/file>
 ```
 
 ### 🧰 Options
 
-- `--dry-run`: Simulate actions without writing files.
-- `--verbose`: Enable verbose logging.
-- `--values <file>`: Path to a values YAML file (can be repeated).
-- `--set <key=value>`: Set a value inline (can be repeated).
-- `--include <pattern>`: Glob pattern of files to include (can be repeated).
-- `--exclude <pattern>`: Glob pattern of files to exclude (can be repeated).
-- `--copy <pattern>`: Glob pattern for files to copy without templating (can be repeated).
-- `--temp <pattern>`: Glob pattern for files to template; others copied.
-- `--strip <suffix>`: Suffix to strip from output filenames.
-- `--mode`: Set file mode (permissions) for created files (octal or symbolic)
+- `-c`, `--copy` Glob pattern for files to copy without templating (can be repeated)
+- `-d`, `--dry-run` Simulate actions without writing files
+- `-e`, `--exclude` Glob pattern of files to exclude (can be repeated)
+- `-F`, `--force` Overwrite files in output directory without confirmation
+- `-h`, `--help`Show help and exit
+- `-i`, `--include` Glob pattern of files to include (can be repeated)
+- `-m`, `--mode` Set file mode (permissions) for created files (octal or symbolic)
+- `-o`, `--out` Output directory for generated files (default: standard output)
+- `-s`, `--s` Set a value (key=value) (can be repeated)
+- `-S`, `--strict` Fail on missing values
+- `-r`, `--strip` Suffix to strip from output filenames if templated (can be repeated)
+- `-t`, `--temp` Glob pattern for files to template; others are copied as-is (mutually exclusive with `--copy`)
+- `-v`, `--values` Path to values YAML file (can be repeated)
+- `-D`, `--verbose` Enable verbose logging
+- `-V`, `--version` Show version and exit
 
 ### 🧾 Tomes
 A Tome is a special YAML file (`.tome.yaml`) placed inside any template directory.
@@ -68,11 +72,35 @@ A .tome.yaml file can be composed of a single tome, or a list of them, each with
 | `temp`    | `[]string`    | Glob patterns for files to template; others copied                          | All              |
 | `values`  | `map[string]` | Key-value map containing the (default) values for rendering. Overwritten by higher-level values | None |
 
-### 🧪 Example
+### Templates
+Templar uses Go's [text/template](https://pkg.go.dev/text/template) extended with functions from [sprig](https://masterminds.github.io/sprig) 
+and the following custom functions:
+#### `seq`
+Returns a slice Overrides the sprig [seq](https://masterminds.github.io/sprig/integer_slice.html) function to return a slice instead of a string.
 
-```bash
-templar --values values.yaml --set app.name=myapp --include "**/*.tmpl" --copy-only "**/*.txt" templates out
-```
+#### `include`
+Imports the content from another file. The imported content is templated using the same values as for the current file.
+
+#### `toYaml`
+Converts a given list, slice, array, dict, or object to YAML string. 
+
+#### `fromYaml`
+Converts a YAML string to an iterable map object.
+
+#### `toJson`
+Converts a list, slice, array, dict, or object to JSON string.
+
+#### `fromJson`
+Converts a JSON string to an iterable map object.
+
+#### `toToml`
+Converts a list, slice, array, dict, or object to TOML string.
+
+#### `fromToml`
+Converts a TOML string to an iterable map object.
+
+#### `required`
+Throws an error if passed variable is undefined
 
 ## 🤝 Contributions
 
