@@ -107,7 +107,7 @@ func (t *Tome) shouldCopy(name string) bool {
 		return t.matchPatterns(t.copy, name)
 	}
 	if len(t.temp) > 0 {
-		return t.matchPatterns(t.temp, name)
+		return !t.matchPatterns(t.temp, name)
 	}
 	return false
 }

@@ -2,6 +2,8 @@ package tome
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestShouldInclude(t *testing.T) {
@@ -62,9 +64,7 @@ func TestShouldInclude(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := tt.tome.ShouldInclude(tt.input)
-			if result != tt.expected {
-				t.Errorf("expected %v, got %v", tt.expected, result)
-			}
+			assert.Equal(t, tt.expected, result, "Expected %v, got %v", tt.expected, result)
 		})
 	}
 }
@@ -119,9 +119,7 @@ func TestShouldCopy(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := tt.tome.shouldCopy(tt.input)
-			if result != tt.expected {
-				t.Errorf("expected %v, got %v", tt.expected, result)
-			}
+			assert.Equal(t, tt.expected, result, "Expected %v, got %v", tt.expected, result)
 		})
 	}
 }
