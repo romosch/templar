@@ -17,7 +17,7 @@ import (
 
 func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 	// Get current file mode
-	info, err := os.Stat(inputPath)
+	info, err := os.Lstat(inputPath)
 	if err != nil {
 		return fmt.Errorf("Error stating input file: %w", err)
 	}
@@ -61,10 +61,10 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 			outputPath = filepath.Join(parts...)
 		}
 	}
-
+	symlink := (info.Mode() & os.ModeSymlink) != 0
 	copy := t.shouldCopy(inputPath)
 	if verbose {
-		if copy {
+		if copy || symlink {
 			fmt.Printf("Copying %s -> %s\n", inputPath, outputPath)
 		} else {
 			fmt.Printf("Templating %s -> %s\n", inputPath, outputPath)
@@ -85,7 +85,15 @@ func (t *Tome) Render(inputPath string, verbose, dryRun, force bool) error {
 		return nil
 	}
 
-	if copy {
+	if symlink {
+		target, err := os.Readlink(inputPath)
+		if err != nil {
+			return fmt.Errorf("readlink %q: %w", inputPath, err)
+		}
+		if err := os.Symlink(target, outputPath); err != nil {
+			return fmt.Errorf("symlink %q -> %q at %q: %w", inputPath, target, outputPath, err)
+		}
+	} else if copy {
 		err = os.WriteFile(outputPath, content, mode)
 		if err != nil {
 			return err

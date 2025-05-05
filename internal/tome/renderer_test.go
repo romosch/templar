@@ -173,3 +173,47 @@ func TestRenderRequired(t *testing.T) {
 	err = tome.Template(io.Discard, "{{ required .missing }}", "input.txt")
 	assert.Error(t, err, "Render should return an error for missing required value")
 }
+
+func TestRenderSymLink(t *testing.T) {
+	inputDir := t.TempDir()
+	outputDir := t.TempDir()
+	inputFile := filepath.Join(inputDir, "input.txt")
+	inputFileContent := "Hello, World!"
+	symlinkFile := filepath.Join(inputDir, "symlink.txt")
+	outputFile := filepath.Join(outputDir, "symlink.txt")
+
+	err := os.WriteFile(inputFile, []byte(inputFileContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create input file: %v", err)
+	}
+
+	err = os.Symlink(inputFile, symlinkFile)
+	if err != nil {
+		t.Fatalf("Failed to create symlink: %v", err)
+	}
+
+	tome := Tome{
+		source: inputDir,
+		target: outputDir,
+	}
+
+	err = tome.Render(symlinkFile, true, false, true)
+	assert.NoError(t, err, "Render should not return an error")
+
+	// Verify the output file exists
+	_, err = os.Stat(outputFile)
+	assert.NoError(t, err, "Output file should exist")
+
+	// Verify the content of the output file
+	content, err := os.ReadFile(outputFile)
+	assert.NoError(t, err, "Failed to read output file")
+	assert.Equal(t, inputFileContent, string(content), "Output file content should match the expected content")
+
+	// Verify the symlink points to the correct file
+	resolvedPath, err := filepath.EvalSymlinks(outputFile)
+	if err != nil {
+		t.Fatalf("Failed to resolve symlink: %v", err)
+	}
+	assert.Equal(t, inputFile, resolvedPath, "Symlink should point to the original file")
+
+}
