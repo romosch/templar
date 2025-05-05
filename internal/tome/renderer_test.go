@@ -1,9 +1,11 @@
 package tome
 
 import (
+	"flag"
 	"io"
 	"os"
 	"path/filepath"
+	"templar/internal/options"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -88,7 +90,14 @@ func TestRenderMatrix(t *testing.T) {
 			tt.tome.source = tempDir
 			tt.tome.target = outputDir
 
-			err = tt.tome.Render(inputFile, true, tt.dryRun, tt.force)
+			if tt.dryRun {
+				flag.CommandLine.Set("dry-run", "true")
+			}
+			if tt.force {
+				flag.CommandLine.Set("force", "true")
+			}
+			options.Init()
+			err = tt.tome.Render(inputFile)
 			assert.NoError(t, err, "Render should not return an error")
 
 			if tt.dryRun {
@@ -100,11 +109,7 @@ func TestRenderMatrix(t *testing.T) {
 			}
 
 			// Verify the output file exists
-			info, err := os.Stat(expectedDir)
-			assert.NoError(t, err, "Output dir should exist")
-
-			// Verify the output file exists
-			info, err = os.Stat(expectedFile)
+			info, err := os.Stat(expectedFile)
 			assert.NoError(t, err, "Output file should exist")
 
 			// Verify the file name
@@ -148,7 +153,7 @@ func TestRenderImport(t *testing.T) {
 		},
 	}
 
-	err = tome.Render(inputFile, true, false, true)
+	err = tome.Render(inputFile)
 	assert.NoError(t, err, "Render should not return an error")
 
 	// Verify the output file exists
@@ -197,7 +202,7 @@ func TestRenderSymLink(t *testing.T) {
 		target: outputDir,
 	}
 
-	err = tome.Render(symlinkFile, true, false, true)
+	err = tome.Render(symlinkFile)
 	assert.NoError(t, err, "Render should not return an error")
 
 	// Verify the output file exists
