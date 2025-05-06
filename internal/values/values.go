@@ -23,14 +23,14 @@ func LoadAndMerge(valueFiles []string, setVals []string) (map[string]any, error)
 		}
 
 		// Substitute environment variables before parsing
-		yamlText := substituteEnvVars(string(data))
+		yamlText := SubstituteEnvVars(string(data))
 
 		var parsed map[string]any
 		if err := yaml.Unmarshal([]byte(yamlText), &parsed); err != nil {
 			return nil, fmt.Errorf("invalid YAML in file %s: %w", file, err)
 		}
 
-		mergeMaps(final, parsed)
+		MergeMaps(final, parsed)
 	}
 
 	// Merge --set values
@@ -67,11 +67,11 @@ func setNestedValue(m map[string]any, key string, value string) {
 }
 
 // Merge src into dst
-func mergeMaps(dst, src map[string]any) {
+func MergeMaps(dst, src map[string]any) {
 	for k, v := range src {
 		if vMap, ok := v.(map[string]any); ok {
 			if dstMap, ok := dst[k].(map[string]any); ok {
-				mergeMaps(dstMap, vMap)
+				MergeMaps(dstMap, vMap)
 			} else {
 				dst[k] = vMap
 			}
@@ -81,9 +81,9 @@ func mergeMaps(dst, src map[string]any) {
 	}
 }
 
-// substituteEnvVars replaces ${VAR} with the corresponding environment variable.
+// SubstituteEnvVars replaces ${VAR} with the corresponding environment variable.
 // Escaped form ${{VAR}} is preserved as literal ${VAR}.
-func substituteEnvVars(yamlContent string) string {
+func SubstituteEnvVars(yamlContent string) string {
 	// Step 1: Escape ${{VAR}} to a temporary placeholder
 	yamlContent = strings.ReplaceAll(yamlContent, "${{", "__ESCAPED_VAR__START__")
 	yamlContent = strings.ReplaceAll(yamlContent, "}}", "__ESCAPED_VAR__END__")

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"templar/internal/options"
+	"templar/internal/values"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
@@ -27,9 +27,6 @@ func LoadTomeFile(file string, base *Tome) ([]*Tome, error) {
 		return nil, fmt.Errorf("failed to read tome file: %w", err)
 	}
 	var templatedData bytes.Buffer
-	if options.Verbose() {
-		fmt.Printf("Templated tomes file %s\n", templatedData.String())
-	}
 	err = base.Template(&templatedData, string(data), file)
 	if err != nil {
 		return nil, fmt.Errorf("failed to template tome file: %w", err)
@@ -62,13 +59,13 @@ func LoadTomeFile(file string, base *Tome) ([]*Tome, error) {
 		} else if tomeConfig.Target[0] != '/' {
 			tomeConfig.Target = filepath.Join(filepath.Dir(filepath.Join(base.target, rel)), tomeConfig.Target)
 		}
-		if len(tomeConfig.Values) == 0 {
-			tomeConfig.Values = base.values
-		} else {
-			for key, value := range base.values {
-				tomeConfig.Values[key] = value
-			}
+
+		mergedValues := make(map[string]any, len(base.values))
+		for key, value := range base.values {
+			mergedValues[key] = value
 		}
+
+		values.MergeMaps(mergedValues, tomeConfig.Values)
 
 		if len(tomeConfig.Strip) == 0 {
 			tomeConfig.Strip = base.strip
@@ -85,7 +82,7 @@ func LoadTomeFile(file string, base *Tome) ([]*Tome, error) {
 		}
 
 		tomes[i], err = New(dir, tomeConfig.Target, tomeConfig.Mode, tomeConfig.Strip,
-			tomeConfig.Include, tomeConfig.Exclude, tomeConfig.Copy, tomeConfig.Temp, tomeConfig.Values)
+			tomeConfig.Include, tomeConfig.Exclude, tomeConfig.Copy, tomeConfig.Temp, mergedValues)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create tome %d: %w", i+1, err)
 		}
