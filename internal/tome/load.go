@@ -46,18 +46,17 @@ func LoadTomeFile(file string, base *Tome) ([]*Tome, error) {
 	}
 
 	dir := filepath.Dir(file)
-	rel, err := filepath.Rel(base.source, dir)
+	formattedDir, err := base.FormatPath(dir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get relative path: %w", err)
+		return nil, fmt.Errorf("failed to format target path: %w", err)
 	}
-
 	tomes := make([]*Tome, len(tomeConfigs))
 
 	for i, tomeConfig := range tomeConfigs {
 		if tomeConfig.Target == "" {
-			tomeConfig.Target = filepath.Join(base.target, rel)
+			tomeConfig.Target = formattedDir
 		} else if tomeConfig.Target[0] != '/' {
-			tomeConfig.Target = filepath.Join(filepath.Dir(filepath.Join(base.target, rel)), tomeConfig.Target)
+			tomeConfig.Target = filepath.Join(filepath.Dir(formattedDir), tomeConfig.Target)
 		}
 
 		mergedValues := make(map[string]any, len(base.values))

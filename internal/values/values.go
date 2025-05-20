@@ -84,17 +84,17 @@ func MergeMaps(dst, src map[string]any) {
 // SubstituteEnvVars replaces ${VAR} with the corresponding environment variable.
 // Escaped form ${{VAR}} is preserved as literal ${VAR}.
 func SubstituteEnvVars(yamlContent string) string {
-	// Step 1: Escape ${{VAR}} to a temporary placeholder
+	// Escape ${{VAR}} to a temporary placeholder
 	yamlContent = strings.ReplaceAll(yamlContent, "${{", "__ESCAPED_VAR__START__")
 	yamlContent = strings.ReplaceAll(yamlContent, "}}", "__ESCAPED_VAR__END__")
 
-	// Step 2: Substitute all ${VAR}
+	// Substitute all ${VAR}
 	yamlContent = envVarRegexp.ReplaceAllStringFunc(yamlContent, func(m string) string {
 		key := envVarRegexp.FindStringSubmatch(m)[1]
 		return os.Getenv(key)
 	})
 
-	// Step 3: Restore escaped ${VAR}
+	// Restore escaped ${VAR}
 	yamlContent = strings.ReplaceAll(yamlContent, "__ESCAPED_VAR__START__", "${")
 	yamlContent = strings.ReplaceAll(yamlContent, "__ESCAPED_VAR__END__", "}")
 

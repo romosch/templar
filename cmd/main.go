@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"templar/internal/options"
 	"templar/internal/tome"
@@ -15,13 +16,13 @@ func main() {
 
 	options.Init()
 
-	if options.Version() {
+	if options.ShowVersion {
 		fmt.Printf("templar %s\n", Version)
 		os.Exit(0)
 	}
 
-	args := options.Args()
-	if options.ShowHelp() || len(args) != 1 {
+	args := options.Args
+	if options.ShowHelp || len(args) != 1 {
 		fmt.Println("Usage: templar [flags] <input dir/file>")
 		options.PrintDefaults()
 		if len(args) < 1 {
@@ -30,7 +31,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	values, err := values.LoadAndMerge(options.Values(), options.SetVals())
+	values, err := values.LoadAndMerge(options.Values, options.SetValues)
 	if err != nil {
 		fmt.Printf("[templar] ❌  failed to load values: %v\n", err)
 		os.Exit(1)
@@ -43,14 +44,14 @@ func main() {
 	}
 
 	baseTome, err := tome.New(
-		args[0],
-		options.Output(),
-		options.Mode(),
-		options.StripSuffix(),
-		options.IncludePatterns(),
-		options.ExcludePatterns(),
-		options.CopyPatterns(),
-		options.TempPatterns(),
+		strings.Trim(args[0], " "),
+		strings.Trim(options.Out, " "),
+		options.Mode,
+		options.StripSuffix,
+		options.IncludePatterns,
+		options.ExcludePatterns,
+		options.CopyPatterns,
+		options.TempPatterns,
 		values,
 	)
 
@@ -67,8 +68,8 @@ func main() {
 		}
 
 		writer := os.Stdout
-		if options.Output() != "" {
-			writer, err = os.Create(options.Output())
+		if options.Out != "" {
+			writer, err = os.Create(options.Out)
 			if err != nil {
 				fmt.Printf("[templar] ❌  failed to create output file: %v\n", err)
 				os.Exit(1)
@@ -84,7 +85,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	if options.Verbose() {
+	if options.Verbose {
 		fmt.Printf("Base Tome: %+v\n", baseTome)
 	}
 

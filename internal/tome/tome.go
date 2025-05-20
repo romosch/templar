@@ -1,10 +1,12 @@
 package tome
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/bmatcuk/doublestar/v4"
 )
@@ -128,4 +130,42 @@ func (t *Tome) matchPatterns(patterns []string, name string) bool {
 		}
 	}
 	return false
+}
+
+func (t *Tome) FormatPath(inputPath string) (string, error) {
+	// Template the file name
+	relPath, err := filepath.Rel(t.source, inputPath)
+	if err != nil {
+		return "", fmt.Errorf("error getting relative path: %w", err)
+	}
+	var templatedPath bytes.Buffer
+	err = t.Template(&templatedPath, relPath, inputPath)
+	if err != nil {
+		return "", fmt.Errorf("error templating name: %w", err)
+	}
+
+	outputPath := templatedPath.String()
+
+	// Apply suffix stripping to the output path
+	if len(t.strip) > 0 {
+		// Split output path by the os specific separator
+		parts := strings.Split(outputPath, string(filepath.Separator))
+		for i, part := range parts {
+			// Strip the suffix from each part of the path
+			for _, s := range t.strip {
+				if strings.HasSuffix(part, s) {
+					parts[i] = strings.TrimSuffix(part, s)
+					break
+				}
+			}
+		}
+		// Rejoin the parts to form the new output path
+		if outputPath[0] == '/' {
+			outputPath = "/" + filepath.Join(parts...)
+		} else {
+			outputPath = filepath.Join(parts...)
+		}
+	}
+
+	return filepath.Join(t.target, outputPath), nil
 }
