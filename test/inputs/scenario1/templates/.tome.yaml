@@ -1,4 +1,4 @@
-{{ $other := ternary "foo" "bar" (eq .test "bar") }}
+{{ $other := ternary "a" "b" (eq .test "b") }}
 exclude:
 - files.{{ $other }}
 strip: 
