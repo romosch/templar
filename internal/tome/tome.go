@@ -132,7 +132,7 @@ func (t *Tome) matchPatterns(patterns []string, name string) bool {
 	return false
 }
 
-func (t *Tome) FormatPath(inputPath string) (string, error) {
+func (t *Tome) formatPath(inputPath string) (string, error) {
 	// Template the file name
 	relPath, err := filepath.Rel(t.source, inputPath)
 	if err != nil {

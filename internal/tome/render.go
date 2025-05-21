@@ -10,7 +10,7 @@ import (
 	"templar/internal/options"
 )
 
-// Walk traverses the file system starting from the specified root directory.
+// Render traverses the file system starting from the specified root path.
 // It processes files and directories based on the rules defined in the Tome instance.
 //
 // If the root is a file, it applies rendering logic to the file. If the root is a directory,
@@ -25,7 +25,7 @@ import (
 //
 // Returns:
 //   - An error if any issues occur during traversal, file rendering, or sub-Tome loading.
-func (t *Tome) Walk(inputPath string) error {
+func (t *Tome) Render(inputPath string) error {
 	if filepath.Base(inputPath) == ".tome.yaml" {
 		return nil
 	}
@@ -40,7 +40,7 @@ func (t *Tome) Walk(inputPath string) error {
 		return fmt.Errorf("failed to stat %s: %w", inputPath, err)
 	}
 
-	outputPath, err := t.FormatPath(inputPath)
+	outputPath, err := t.formatPath(inputPath)
 	if err != nil {
 		return fmt.Errorf("error formatting path: %w", err)
 	}
@@ -72,7 +72,7 @@ func (t *Tome) Walk(inputPath string) error {
 			// No tomefile, render dir entries using the current tome
 			for _, entry := range entries {
 
-				err = t.Walk(filepath.Join(inputPath, entry.Name()))
+				err = t.Render(filepath.Join(inputPath, entry.Name()))
 				if err != nil {
 					return err
 				}
@@ -88,7 +88,7 @@ func (t *Tome) Walk(inputPath string) error {
 					fmt.Printf("[templar] Tome %s\n", subTome.source)
 				}
 				for _, entry := range entries {
-					err = subTome.Walk(filepath.Join(inputPath, entry.Name()))
+					err = subTome.Render(filepath.Join(inputPath, entry.Name()))
 					if err != nil {
 						return err
 					}

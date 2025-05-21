@@ -46,7 +46,7 @@ func LoadTomeFile(file string, base *Tome) ([]*Tome, error) {
 	}
 
 	dir := filepath.Dir(file)
-	formattedDir, err := base.FormatPath(dir)
+	formattedDir, err := base.formatPath(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to format target path: %w", err)
 	}

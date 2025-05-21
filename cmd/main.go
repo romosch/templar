@@ -89,7 +89,7 @@ func main() {
 		fmt.Printf("Base Tome: %+v\n", baseTome)
 	}
 
-	err = baseTome.Walk(args[0])
+	err = baseTome.Render(args[0])
 	if err != nil {
 		fmt.Printf("[templar] ❌  error walking files: %v\n", err)
 		os.Exit(1)
