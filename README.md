@@ -1,4 +1,4 @@
-# Templar
+<img src="https://github.com/user-attachments/assets/9a145b75-082e-4474-b1bc-b1313e8d5530" width="200" alt="Templar"/>
 
 Templar is a fast, lightweight templating engine for directories and files, built with Go’s text/template and Sprig.
 It lets you define how directories are generated using simple, declarative control files, enabling dynamic, repeatable, and fully configurable project structures.
