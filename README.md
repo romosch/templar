@@ -1,4 +1,4 @@
-<img src="https://github.com/user-attachments/assets/9a145b75-082e-4474-b1bc-b1313e8d5530" width="200" alt="Templar"/>
+<p align="center"><img src="https://github.com/user-attachments/assets/9a145b75-082e-4474-b1bc-b1313e8d5530" width="200" alt="Templar"/></p>
 
 Templar is a fast, lightweight templating engine for directories and files, built with Go’s text/template and Sprig.
 It lets you define how directories are generated using simple, declarative control files, enabling dynamic, repeatable, and fully configurable project structures.
@@ -18,7 +18,7 @@ Download a prebuilt binary from the [Releases](/romosch/templar/releases).
 ### Clone/Build
 1. Clone the repository:
     ```bash
-    git clone https://github.com/your-username/templar.git
+    git clone https://github.com/romosch/templar.git
     cd templar
     ```
 
