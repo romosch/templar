@@ -37,7 +37,7 @@ func TestMain(m *testing.M) {
 func TestScenario1a(t *testing.T) {
 	// Create a temporary directory for the test
 	tmpDir := t.TempDir()
-	cmd := exec.Command(templarBin, "--verbose", "--set=test=a", "--out="+tmpDir, "inputs/scenario1/templates")
+	cmd := exec.Command(templarBin, "--verbose", "--set=test=a", "--set=num=00123", "--out="+tmpDir, "inputs/scenario1/templates")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -146,7 +146,7 @@ produced %s (%d):
 			t.Fatalf("failed to read %s: %v", wantEntryPath, err)
 		}
 		if string(gotData) != string(wantData) {
-			t.Errorf("file content mismatch for %s", entry.Name())
+			t.Errorf("file content mismatch for %s: got: %s, want: %s", entry.Name(), string(gotData), string(wantData))
 		}
 
 		if gotEntryInfo.Mode().Perm() != wantEntryInfo.Mode().Perm() {

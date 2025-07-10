@@ -48,7 +48,7 @@ config:
 
 		// Call LoadAndMerge
 		valueFiles := []string{file1, file2, file3}
-		setVals := []string{"app.name=overridden-app", "app.newKey=newValue"}
+		setVals := []string{"app.name=overridden-app", "app.newKey=newValue", "app.tag=00123"}
 		result, err := LoadAndMerge(valueFiles, setVals)
 		if err != nil {
 			t.Fatalf("LoadAndMerge failed: %v", err)
@@ -61,6 +61,7 @@ config:
 				"version":     "2.0",
 				"description": "A test application",
 				"newKey":      "newValue",
+				"tag":         "00123",
 			},
 			"config": map[string]interface{}{
 				"env": "env-value",
