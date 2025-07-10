@@ -115,6 +115,11 @@ func parseYAMLValue(value string) any {
 		return nil
 	}
 
+	// Check for leading zeroes
+	if strings.HasPrefix(value, "0") {
+		return value
+	}
+
 	// Check for integers
 	if intVal, err := strconv.Atoi(value); err == nil {
 		return intVal

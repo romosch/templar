@@ -135,6 +135,17 @@ func (t *Tome) Render(inputPath string) error {
 		if err != nil {
 			return fmt.Errorf("readlink %q: %w", inputPath, err)
 		}
+
+		// Remove existing symlink if it exists and force option is set
+		if _, err := os.Lstat(outputPath); err == nil && options.Force {
+			if options.Verbose {
+				fmt.Printf("[templar] Removing existing symlink %s\n", outputPath)
+			}
+			if err := os.Remove(outputPath); err != nil {
+				return fmt.Errorf("failed to remove existing symlink: %w", err)
+			}
+		}
+
 		if err := os.Symlink(target, outputPath); err != nil {
 			return fmt.Errorf("symlink %q -> %q at %q: %w", inputPath, target, outputPath, err)
 		}
