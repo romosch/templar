@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"text/template"
@@ -56,28 +59,47 @@ type RenderDir struct {
 }
 
 func (rd *RenderDir) importContent(path string) (string, error) {
-	// Read the file content
-	if path[0] != '/' {
-		path = filepath.Join(rd.Dir, path)
+	var content []byte
+	var err error
+
+	if u, parseErr := url.Parse(path); parseErr == nil && (u.Scheme == "http" || u.Scheme == "https") {
+		// URL path
+		resp, httpErr := http.Get(path)
+		if httpErr != nil {
+			return "", fmt.Errorf("error fetching URL %s: %w", path, httpErr)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != 200 {
+			return "", fmt.Errorf("error fetching URL %s: status %s", path, resp.Status)
+		}
+		content, err = io.ReadAll(resp.Body)
+		if err != nil {
+			return "", fmt.Errorf("error reading response body from %s: %w", path, err)
+		}
+	} else {
+		// Local file path
+		if path[0] != '/' {
+			path = filepath.Join(rd.Dir, path)
+		}
+		content, err = os.ReadFile(path)
+		if err != nil {
+			return "", fmt.Errorf("error reading file %s: %w", path, err)
+		}
 	}
-	content, err := os.ReadFile(path)
-	if err != nil {
-		return "", fmt.Errorf("Error reading file %s: %w", path, err)
-	}
+
 	var templatedContent bytes.Buffer
 	err = rd.Tome.Template(&templatedContent, string(content), path)
 	if err != nil {
-		return "", fmt.Errorf("Error templating import: %w", err)
+		return "", fmt.Errorf("error templating import: %w", err)
 	}
-	// Convert the content to a string
-	return string(templatedContent.Bytes()), nil
+	return templatedContent.String(), nil
 }
 
 func toYaml(v any) (string, error) {
 	// Marshal the value to YAML
 	data, err := yaml.Marshal(v)
 	if err != nil {
-		return "", fmt.Errorf("Error converting to YAML: %w", err)
+		return "", fmt.Errorf("error converting to YAML: %w", err)
 	}
 	// Convert the byte slice to a string
 	return string(data), nil
@@ -89,7 +111,7 @@ func fromYaml(str string) (map[any]any, error) {
 	if err := yaml.Unmarshal([]byte(str), &ret); err != nil {
 		a := []any{}
 		if err := yaml.Unmarshal([]byte(str), &a); err != nil {
-			return nil, fmt.Errorf("Error converting from YAML: %w", err)
+			return nil, fmt.Errorf("error converting from YAML: %w", err)
 		}
 		for i, v := range a {
 			ret[i] = v
@@ -111,7 +133,7 @@ func toToml(v any) string {
 func fromToml(str string) (map[string]any, error) {
 	ret := make(map[string]any)
 	if err := toml.Unmarshal([]byte(str), &ret); err != nil {
-		return nil, fmt.Errorf("Error converting from TOML: %w", err)
+		return nil, fmt.Errorf("error converting from TOML: %w", err)
 	}
 	return ret, nil
 }
@@ -119,7 +141,7 @@ func fromToml(str string) (map[string]any, error) {
 func toJson(v any) (string, error) {
 	data, err := json.Marshal(v)
 	if err != nil {
-		return "", fmt.Errorf("Error converting to JSON: %w", err)
+		return "", fmt.Errorf("error converting to JSON: %w", err)
 	}
 	return string(data), nil
 }
@@ -130,7 +152,7 @@ func fromJson(str string) (map[any]any, error) {
 	if err := json.Unmarshal([]byte(str), &m); err != nil {
 		a := []any{}
 		if err := json.Unmarshal([]byte(str), &a); err != nil {
-			return nil, fmt.Errorf("Error converting from JSON: %w", err)
+			return nil, fmt.Errorf("error converting from JSON: %w", err)
 		}
 		for i, v := range a {
 			ret[i] = v

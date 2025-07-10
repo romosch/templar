@@ -1,6 +1,8 @@
 package tome
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -38,12 +40,42 @@ func TestImportContent(t *testing.T) {
 		},
 	}
 
-	// Test importContent
+	// Test importContent from file
 	result, err := rd.importContent(tempFile)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 	assert.Equal(t, expectedContent, result)
+}
+
+func TestImportContentFromURL(t *testing.T) {
+	expectedContent := "Hello, World!"
+	// Start a local HTTP server
+	ts := os.TempDir()
+	server := httpTestServer([]byte("{{ .msg }}"))
+	defer server.Close()
+
+	rd := RenderDir{
+		Dir: ts,
+		Tome: &Tome{
+			values: map[string]interface{}{
+				"msg": expectedContent,
+			},
+		},
+	}
+
+	result, err := rd.importContent(server.URL)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	assert.Equal(t, expectedContent, result)
+}
+
+// httpTestServer is a helper to start a test HTTP server returning a template
+func httpTestServer(content []byte) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write(content)
+	}))
 }
 
 func TestToYaml(t *testing.T) {
