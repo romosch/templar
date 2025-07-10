@@ -10,7 +10,7 @@ import (
 	"templar/internal/values"
 )
 
-const Version = "v0.1.3"
+const Version = "v0.1.4"
 
 func main() {
 
