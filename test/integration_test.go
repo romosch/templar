@@ -37,7 +37,7 @@ func TestMain(m *testing.M) {
 func TestScenario1a(t *testing.T) {
 	// Create a temporary directory for the test
 	tmpDir := t.TempDir()
-	cmd := exec.Command(templarBin, "--verbose", "--set=test=a", "--set=num=00123", "--out="+tmpDir, "inputs/scenario1/templates")
+	cmd := exec.Command(templarBin, "--verbose", "--set=test=a", "--set=num=01914634", "--out="+tmpDir, "inputs/scenario1/templates")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
