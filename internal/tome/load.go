@@ -57,6 +57,8 @@ func LoadTomeFile(file string, base *Tome) ([]*Tome, error) {
 			tomeConfig.Target = formattedDir
 		} else if tomeConfig.Target[0] != '/' {
 			tomeConfig.Target = filepath.Join(filepath.Dir(formattedDir), tomeConfig.Target)
+		} else {
+			return nil, fmt.Errorf("target path must be relative to the tome file directory: %s", tomeConfig.Target)
 		}
 
 		mergedValues := make(map[string]any, len(base.values))

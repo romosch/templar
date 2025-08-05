@@ -166,6 +166,7 @@ values:
 				assert.Equal(t, expectedTome.exclude, tomes[i].exclude, "Exclude mismatch")
 				assert.Equal(t, expectedTome.copy, tomes[i].copy, "Copy mismatch")
 				assert.Equal(t, expectedTome.temp, tomes[i].temp, "Temp mismatch")
+				delete(tomes[i].values, "__tome__") // Ignore __tome__ key for comparison
 				assert.Equal(t, expectedTome.values, tomes[i].values, "Values mismatch")
 			}
 		})

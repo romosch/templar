@@ -47,6 +47,17 @@ func New(source, target, mode string, strip, include, exclude, copy, temp []stri
 		}
 	}
 
+	values["__tome__"] = map[string]any{
+		"source":  source,
+		"target":  target,
+		"mode":    fileMode.String(),
+		"strip":   strip,
+		"include": include,
+		"exclude": exclude,
+		"copy":    copy,
+		"temp":    temp,
+	}
+
 	return &Tome{
 		source:  source,
 		target:  target,
