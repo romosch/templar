@@ -27,7 +27,7 @@ func LoadAndMerge(valueFiles []string, setVals []string) (map[string]any, error)
 
 		var parsed map[string]any
 		if err := yaml.Unmarshal([]byte(yamlText), &parsed); err != nil {
-			return nil, fmt.Errorf("invalid YAML in file %s: %w", file, err)
+			return nil, fmt.Errorf("invalid YAML in file %s: %w :: \n%s", file, err, yamlText)
 		}
 
 		MergeMaps(final, parsed)
@@ -91,7 +91,7 @@ func SubstituteEnvVars(yamlContent string) string {
 	// Substitute all ${VAR}
 	yamlContent = envVarRegexp.ReplaceAllStringFunc(yamlContent, func(m string) string {
 		key := envVarRegexp.FindStringSubmatch(m)[1]
-		return `"` + os.Getenv(key) + `"`
+		return os.Getenv(key)
 	})
 
 	// Restore escaped ${VAR}
