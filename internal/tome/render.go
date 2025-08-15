@@ -53,15 +53,6 @@ func (t *Tome) Render(inputPath string) error {
 	}
 
 	if info.IsDir() {
-		if options.Verbose {
-			fmt.Printf("[templar] Creating directory %s -> %v %s\n", inputPath, mode, outputPath)
-		}
-		if !options.DryRun {
-			err = os.MkdirAll(outputPath, mode)
-			if err != nil {
-				return fmt.Errorf("error creating output directory: %w", err)
-			}
-		}
 		// Input is a directory, iterate over its contents
 		entries, err := os.ReadDir(inputPath)
 		if err != nil {
@@ -70,6 +61,15 @@ func (t *Tome) Render(inputPath string) error {
 
 		tomesFile := filepath.Join(inputPath, ".tome.yaml")
 		if _, err := os.Stat(tomesFile); errors.Is(err, os.ErrNotExist) {
+			if options.Verbose {
+				fmt.Printf("[templar] Creating directory %s -> %v %s\n", inputPath, mode, outputPath)
+			}
+			if !options.DryRun {
+				err = os.MkdirAll(outputPath, mode)
+				if err != nil {
+					return fmt.Errorf("error creating output directory: %w", err)
+				}
+			}
 			// No tomefile, render dir entries using the current tome
 			for _, entry := range entries {
 
