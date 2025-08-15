@@ -34,7 +34,7 @@ func TestImportContent(t *testing.T) {
 	rd := RenderDir{
 		Dir: tempDir,
 		Tome: &Tome{
-			values: map[string]interface{}{
+			Values: map[string]interface{}{
 				"msg": expectedContent,
 			},
 		},
@@ -58,7 +58,7 @@ func TestImportContentFromURL(t *testing.T) {
 	rd := RenderDir{
 		Dir: ts,
 		Tome: &Tome{
-			values: map[string]interface{}{
+			Values: map[string]interface{}{
 				"msg": expectedContent,
 			},
 		},

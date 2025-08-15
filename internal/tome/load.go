@@ -61,25 +61,25 @@ func LoadTomeFile(file string, base *Tome) ([]*Tome, error) {
 			return nil, fmt.Errorf("target path must be relative to the tome file directory: %s", tomeConfig.Target)
 		}
 
-		mergedValues := make(map[string]any, len(base.values))
-		for key, value := range base.values {
+		mergedValues := make(map[string]any, len(base.Values))
+		for key, value := range base.Values {
 			mergedValues[key] = value
 		}
 
 		values.MergeMaps(mergedValues, tomeConfig.Values)
 
 		if len(tomeConfig.Strip) == 0 {
-			tomeConfig.Strip = base.strip
+			tomeConfig.Strip = base.Strip
 		}
 
 		if len(tomeConfig.Include) == 0 && len(tomeConfig.Exclude) == 0 {
-			tomeConfig.Include = base.include
-			tomeConfig.Exclude = base.exclude
+			tomeConfig.Include = base.Include
+			tomeConfig.Exclude = base.Exclude
 		}
 
 		if len(tomeConfig.Copy) == 0 && len(tomeConfig.Temp) == 0 {
-			tomeConfig.Copy = base.copy
-			tomeConfig.Temp = base.temp
+			tomeConfig.Copy = base.Copy
+			tomeConfig.Temp = base.Temp
 		}
 
 		tomes[i], err = New(dir, tomeConfig.Target, tomeConfig.Mode, tomeConfig.Strip,

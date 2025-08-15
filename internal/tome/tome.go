@@ -12,20 +12,20 @@ import (
 )
 
 type Tome struct {
-	source  string
-	target  string
-	mode    os.FileMode
-	strip   []string
-	include []string
-	exclude []string
-	copy    []string
-	temp    []string
-	values  map[string]any
+	Spource string         `json:"source"`
+	Target  string         `json:"target"`
+	Mode    os.FileMode    `json:"mode"`
+	Strip   []string       `json:"strip"`
+	Include []string       `json:"include"`
+	Exclude []string       `json:"exclude"`
+	Copy    []string       `json:"copy"`
+	Temp    []string       `json:"temp"`
+	Values  map[string]any `json:"values"`
 }
 
 func (t *Tome) String() string {
 	return fmt.Sprintf("{source: %s, target: %s, mode: %o, strip: %s, include: %v, exclude: %v, copy: %v, temp: %v, values: %v}",
-		t.source, t.target, t.mode, t.strip, t.include, t.exclude, t.copy, t.temp, t.values)
+		t.Spource, t.Target, t.Mode, t.Strip, t.Include, t.Exclude, t.Copy, t.Temp, t.Values)
 }
 
 func New(source, target, mode string, strip, include, exclude, copy, temp []string, values map[string]any) (*Tome, error) {
@@ -59,15 +59,15 @@ func New(source, target, mode string, strip, include, exclude, copy, temp []stri
 	}
 
 	return &Tome{
-		source:  source,
-		target:  target,
-		mode:    fileMode,
-		strip:   strip,
-		include: include,
-		exclude: exclude,
-		copy:    copy,
-		temp:    temp,
-		values:  values,
+		Spource: source,
+		Target:  target,
+		Mode:    fileMode,
+		Strip:   strip,
+		Include: include,
+		Exclude: exclude,
+		Copy:    copy,
+		Temp:    temp,
+		Values:  values,
 	}, nil
 }
 
@@ -105,22 +105,22 @@ func parseFileMode(modeStr string) (os.FileMode, error) {
 }
 
 func (t *Tome) ShouldInclude(name string) bool {
-	if len(t.include) > 0 {
-		return t.matchPatterns(t.include, name)
+	if len(t.Include) > 0 {
+		return t.matchPatterns(t.Include, name)
 	}
-	if len(t.exclude) > 0 {
-		return !t.matchPatterns(t.exclude, name)
+	if len(t.Exclude) > 0 {
+		return !t.matchPatterns(t.Exclude, name)
 	}
 
 	return true
 }
 
 func (t *Tome) shouldCopy(name string) bool {
-	if len(t.copy) > 0 {
-		return t.matchPatterns(t.copy, name)
+	if len(t.Copy) > 0 {
+		return t.matchPatterns(t.Copy, name)
 	}
-	if len(t.temp) > 0 {
-		return !t.matchPatterns(t.temp, name)
+	if len(t.Temp) > 0 {
+		return !t.matchPatterns(t.Temp, name)
 	}
 
 	return false
@@ -129,7 +129,7 @@ func (t *Tome) shouldCopy(name string) bool {
 func (t *Tome) matchPatterns(patterns []string, name string) bool {
 	for _, pattern := range patterns {
 		if pattern[0] != '/' {
-			pattern = filepath.Join(t.source, pattern)
+			pattern = filepath.Join(t.Spource, pattern)
 		}
 		matched, err := doublestar.PathMatch(pattern, name)
 		if err != nil {
@@ -145,7 +145,7 @@ func (t *Tome) matchPatterns(patterns []string, name string) bool {
 
 func (t *Tome) formatPath(inputPath string) (string, error) {
 	// Template the file name
-	relPath, err := filepath.Rel(t.source, inputPath)
+	relPath, err := filepath.Rel(t.Spource, inputPath)
 	if err != nil {
 		return "", fmt.Errorf("error getting relative path: %w", err)
 	}
@@ -158,12 +158,12 @@ func (t *Tome) formatPath(inputPath string) (string, error) {
 	outputPath := templatedPath.String()
 
 	// Apply suffix stripping to the output path
-	if len(t.strip) > 0 {
+	if len(t.Strip) > 0 {
 		// Split output path by the os specific separator
 		parts := strings.Split(outputPath, string(filepath.Separator))
 		for i, part := range parts {
 			// Strip the suffix from each part of the path
-			for _, s := range t.strip {
+			for _, s := range t.Strip {
 				if strings.HasSuffix(part, s) {
 					parts[i] = strings.TrimSuffix(part, s)
 					break
@@ -178,5 +178,5 @@ func (t *Tome) formatPath(inputPath string) (string, error) {
 		}
 	}
 
-	return filepath.Join(t.target, outputPath), nil
+	return filepath.Join(t.Target, outputPath), nil
 }

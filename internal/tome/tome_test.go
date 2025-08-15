@@ -16,7 +16,7 @@ func TestShouldInclude(t *testing.T) {
 		{
 			name: "Match in include",
 			tome: Tome{
-				include: []string{"*.txt"},
+				Include: []string{"*.txt"},
 			},
 			input:    "file.txt",
 			expected: true,
@@ -24,7 +24,7 @@ func TestShouldInclude(t *testing.T) {
 		{
 			name: "No Match in include",
 			tome: Tome{
-				include: []string{"*.txt"},
+				Include: []string{"*.txt"},
 			},
 			input:    "file.jpg",
 			expected: false,
@@ -32,7 +32,7 @@ func TestShouldInclude(t *testing.T) {
 		{
 			name: "Match in exclude",
 			tome: Tome{
-				exclude: []string{"*.txt"},
+				Exclude: []string{"*.txt"},
 			},
 			input:    "file.txt",
 			expected: false,
@@ -40,7 +40,7 @@ func TestShouldInclude(t *testing.T) {
 		{
 			name: "No Match in exclude",
 			tome: Tome{
-				exclude: []string{"*.txt"},
+				Exclude: []string{"*.txt"},
 			},
 			input:    "file.jpg",
 			expected: true,
@@ -54,7 +54,7 @@ func TestShouldInclude(t *testing.T) {
 		{
 			name: "Match in subdir include",
 			tome: Tome{
-				include: []string{"**/*.txt"},
+				Include: []string{"**/*.txt"},
 			},
 			input:    "test/file.txt",
 			expected: true,
@@ -79,7 +79,7 @@ func TestShouldCopy(t *testing.T) {
 		{
 			name: "Match in copy",
 			tome: Tome{
-				copy: []string{"**/*.txt"},
+				Copy: []string{"**/*.txt"},
 			},
 			input:    "test/file.txt",
 			expected: true,
@@ -87,7 +87,7 @@ func TestShouldCopy(t *testing.T) {
 		{
 			name: "No Match in copy",
 			tome: Tome{
-				copy: []string{"*.txt"},
+				Copy: []string{"*.txt"},
 			},
 			input:    "file.jpg",
 			expected: false,
@@ -95,7 +95,7 @@ func TestShouldCopy(t *testing.T) {
 		{
 			name: "Match in temp",
 			tome: Tome{
-				temp: []string{"*.txt"},
+				Temp: []string{"*.txt"},
 			},
 			input:    "file.txt",
 			expected: false,
@@ -103,7 +103,7 @@ func TestShouldCopy(t *testing.T) {
 		{
 			name: "No Match in temp",
 			tome: Tome{
-				temp: []string{"*.txt"},
+				Temp: []string{"*.txt"},
 			},
 			input:    "file.jpg",
 			expected: true,

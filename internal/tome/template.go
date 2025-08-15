@@ -17,7 +17,7 @@ func (t *Tome) Template(writer io.Writer, text string, name string) error {
 		return err
 	}
 
-	missingTemplateKeys, err := findMissingTemplateKeys(tmpl, text, t.values)
+	missingTemplateKeys, err := findMissingTemplateKeys(tmpl, text, t.Values)
 	if err != nil {
 		return fmt.Errorf("error finding missing template keys for %s: %w", name, err)
 	}
@@ -29,7 +29,7 @@ func (t *Tome) Template(writer io.Writer, text string, name string) error {
 			return errors.New("missing template keys not allowed in strict mode")
 		}
 	}
-	return tmpl.Execute(writer, t.values)
+	return tmpl.Execute(writer, t.Values)
 }
 
 // MissingKey holds the name and position of a missing template key

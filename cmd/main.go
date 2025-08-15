@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -86,7 +87,8 @@ func main() {
 	}
 
 	if options.Verbose {
-		fmt.Printf("Base Tome: %+v\n", baseTome)
+		b, _ := json.MarshalIndent(baseTome, "", "  ")
+		fmt.Printf("[templar] Tome %s\n", string(b))
 	}
 
 	err = baseTome.Render(args[0])

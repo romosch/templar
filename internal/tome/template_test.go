@@ -13,7 +13,7 @@ import (
 
 func TestTemplate_AllKeysPresent(t *testing.T) {
 	tome := Tome{
-		values: map[string]interface{}{
+		Values: map[string]interface{}{
 			"Name": "World",
 		},
 	}
@@ -36,7 +36,7 @@ func TestTemplate_MissingKey_NonStrict(t *testing.T) {
 	defer func() { options.Strict = origStrict }()
 
 	tome := Tome{
-		values: map[string]interface{}{
+		Values: map[string]interface{}{
 			"Name": "World",
 		},
 	}
@@ -59,7 +59,7 @@ func TestTemplate_MissingKey_Strict(t *testing.T) {
 	defer func() { options.Strict = origStrict }()
 
 	tome := Tome{
-		values: map[string]interface{}{
+		Values: map[string]interface{}{
 			"name": "World",
 		},
 	}
@@ -180,7 +180,7 @@ func TestFindMissingTemplateKeys_NestedFields(t *testing.T) {
 // Optionally, test that no panic occurs for empty template
 func TestTemplate_EmptyTemplate(t *testing.T) {
 	tome := Tome{
-		values: map[string]interface{}{
+		Values: map[string]interface{}{
 			"Name": "World",
 		},
 	}

@@ -34,20 +34,20 @@ func TestLoad(t *testing.T) {
     key: "custom-value2"
 `,
 			base: Tome{
-				target: "/tmp",
+				Target: "/tmp",
 			},
 			expected: []Tome{
 				{
-					target:  "/tmp/custom-target1",
-					strip:   []string{"custom-strip"},
-					include: []string{"custom-include"},
-					values:  map[string]any{"key": "custom-value"},
+					Target:  "/tmp/custom-target1",
+					Strip:   []string{"custom-strip"},
+					Include: []string{"custom-include"},
+					Values:  map[string]any{"key": "custom-value"},
 				},
 				{
-					target:  "/tmp/custom-target2",
-					mode:    0777,
-					exclude: []string{"custom-exclude"},
-					values:  map[string]any{"key": "custom-value2"},
+					Target:  "/tmp/custom-target2",
+					Mode:    0777,
+					Exclude: []string{"custom-exclude"},
+					Values:  map[string]any{"key": "custom-value2"},
 				},
 			},
 			expectError: false,
@@ -63,14 +63,14 @@ values:
   key: "custom-value"
 `,
 			base: Tome{
-				target: "/tmp",
+				Target: "/tmp",
 			},
 			expected: []Tome{
 				{
-					target:  "/tmp/custom-target",
-					strip:   []string{"custom-strip"},
-					include: []string{"custom-include"},
-					values:  map[string]any{"key": "custom-value"},
+					Target:  "/tmp/custom-target",
+					Strip:   []string{"custom-strip"},
+					Include: []string{"custom-include"},
+					Values:  map[string]any{"key": "custom-value"},
 				},
 			},
 			expectError: false,
@@ -81,19 +81,19 @@ values:
 - {}
 `,
 			base: Tome{
-				target:  "/tmp/target",
-				strip:   []string{"default-strip"},
-				exclude: []string{"default-exclude"},
-				temp:    []string{"default-temp"},
-				values:  map[string]any{"key": "value"},
+				Target:  "/tmp/target",
+				Strip:   []string{"default-strip"},
+				Exclude: []string{"default-exclude"},
+				Temp:    []string{"default-temp"},
+				Values:  map[string]any{"key": "value"},
 			},
 			expected: []Tome{
 				{
-					target:  "/tmp/target/{{ .tempdir }}",
-					strip:   []string{"default-strip"},
-					exclude: []string{"default-exclude"},
-					temp:    []string{"default-temp"},
-					values:  map[string]any{"key": "value"},
+					Target:  "/tmp/target/{{ .tempdir }}",
+					Strip:   []string{"default-strip"},
+					Exclude: []string{"default-exclude"},
+					Temp:    []string{"default-temp"},
+					Values:  map[string]any{"key": "value"},
 				},
 			},
 			expectError: false,
@@ -139,7 +139,7 @@ values:
 				t.Fatalf("failed to write to temp file: %v", err)
 			}
 			tempFile.Close()
-			tt.base.source = filepath.Dir(tempDir)
+			tt.base.Spource = filepath.Dir(tempDir)
 
 			tomes, err := LoadTomeFile(tempFile.Name(), &tt.base)
 			if tt.expectError {
@@ -160,14 +160,14 @@ values:
 			}
 
 			for i, expectedTome := range tt.expected {
-				assert.Equal(t, strings.Replace(expectedTome.target, "{{ .tempdir }}", filepath.Base(tempDir), -1), tomes[i].target, "Target mismatch")
-				assert.Equal(t, expectedTome.strip, tomes[i].strip, "Strip mismatch")
-				assert.Equal(t, expectedTome.include, tomes[i].include, "Include mismatch")
-				assert.Equal(t, expectedTome.exclude, tomes[i].exclude, "Exclude mismatch")
-				assert.Equal(t, expectedTome.copy, tomes[i].copy, "Copy mismatch")
-				assert.Equal(t, expectedTome.temp, tomes[i].temp, "Temp mismatch")
-				delete(tomes[i].values, "__tome__") // Ignore __tome__ key for comparison
-				assert.Equal(t, expectedTome.values, tomes[i].values, "Values mismatch")
+				assert.Equal(t, strings.Replace(expectedTome.Target, "{{ .tempdir }}", filepath.Base(tempDir), -1), tomes[i].Target, "Target mismatch")
+				assert.Equal(t, expectedTome.Strip, tomes[i].Strip, "Strip mismatch")
+				assert.Equal(t, expectedTome.Include, tomes[i].Include, "Include mismatch")
+				assert.Equal(t, expectedTome.Exclude, tomes[i].Exclude, "Exclude mismatch")
+				assert.Equal(t, expectedTome.Copy, tomes[i].Copy, "Copy mismatch")
+				assert.Equal(t, expectedTome.Temp, tomes[i].Temp, "Temp mismatch")
+				delete(tomes[i].Values, "__tome__") // Ignore __tome__ key for comparison
+				assert.Equal(t, expectedTome.Values, tomes[i].Values, "Values mismatch")
 			}
 		})
 	}

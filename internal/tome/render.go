@@ -2,6 +2,7 @@ package tome
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -47,8 +48,8 @@ func (t *Tome) Render(inputPath string) error {
 
 	// Determine the file mode
 	mode := info.Mode().Perm()
-	if t.mode != 0 {
-		mode = t.mode
+	if t.Mode != 0 {
+		mode = t.Mode
 	}
 
 	if info.IsDir() {
@@ -85,7 +86,8 @@ func (t *Tome) Render(inputPath string) error {
 			}
 			for _, subTome := range subTomes {
 				if options.Verbose {
-					fmt.Printf("[templar] Tome %s\n", subTome.source)
+					b, _ := json.MarshalIndent(subTome, "", "  ")
+					fmt.Printf("[templar] Tome %s\n", string(b))
 				}
 				for _, entry := range entries {
 					err = subTome.Render(filepath.Join(inputPath, entry.Name()))
