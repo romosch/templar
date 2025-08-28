@@ -91,7 +91,13 @@ func SubstituteEnvVars(yamlContent string) string {
 	// Substitute all ${VAR}
 	yamlContent = envVarRegexp.ReplaceAllStringFunc(yamlContent, func(m string) string {
 		key := envVarRegexp.FindStringSubmatch(m)[1]
-		return os.Getenv(key)
+		value := os.Getenv(key)
+		// Check for integers
+		if _, err := strconv.Atoi(value); err == nil && strings.HasPrefix(value, "0") {
+			return fmt.Sprintf("\"%s\"", value)
+		}
+
+		return value
 	})
 
 	// Restore escaped ${VAR}
