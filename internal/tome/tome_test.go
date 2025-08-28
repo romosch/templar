@@ -56,7 +56,7 @@ func TestShouldInclude(t *testing.T) {
 			tome: Tome{
 				Include: []string{"**/*.txt"},
 			},
-			input:    "test",
+			input:    "test.txt",
 			expected: true,
 		},
 	}
