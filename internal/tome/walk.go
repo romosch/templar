@@ -63,7 +63,7 @@ func (t *Tome) Render(inputPath string) error {
 		if _, err := os.Stat(tomesFile); errors.Is(err, os.ErrNotExist) {
 			// No tome file, render dir entries using the current tome
 			if options.Verbose {
-				fmt.Printf("[templar] Creating directory %s -> %v %s\n", inputPath, mode, outputPath)
+				fmt.Printf("[templar] Creating directory %v %s\n", mode, outputPath)
 			}
 			if !options.DryRun {
 				err = os.MkdirAll(outputPath, mode)
@@ -88,16 +88,16 @@ func (t *Tome) Render(inputPath string) error {
 					b, _ := json.MarshalIndent(subTome, "", "  ")
 					fmt.Printf("[templar] Tome %s\n", string(b))
 				}
+				if options.Verbose {
+					fmt.Printf("[templar] Creating directory %v %s\n", subTome.Mode, subTome.Target)
+				}
+				if !options.DryRun {
+					err = os.MkdirAll(subTome.Target, mode)
+					if err != nil {
+						return fmt.Errorf("error creating output directory: %w", err)
+					}
+				}
 				for _, entry := range entries {
-					if options.Verbose {
-						fmt.Printf("[templar] Creating directory %s -> %v %s\n", inputPath, mode, outputPath)
-					}
-					if !options.DryRun {
-						err = os.MkdirAll(outputPath, mode)
-						if err != nil {
-							return fmt.Errorf("error creating output directory: %w", err)
-						}
-					}
 					err = subTome.Render(filepath.Join(inputPath, entry.Name()))
 					if err != nil {
 						return err
