@@ -175,12 +175,13 @@ func (t *Tome) Render(inputPath string) error {
 			return err
 		}
 	} else {
-		outFile, err := os.Create(outputPath)
+		outFile, err := os.Create(outputPath + ".tmp")
 		if err != nil {
 			return fmt.Errorf("error creating output file: %w", err)
 		}
 		err = t.Template(outFile, string(content), inputPath)
 		outFile.Close()
+		os.Rename(outputPath+".tmp", outputPath)
 		if err != nil {
 			return fmt.Errorf("error templating contents: %w", err)
 		}
