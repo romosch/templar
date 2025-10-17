@@ -10,6 +10,7 @@ Templar is ideal for generating config files, scaffolding projects, or automatin
 - Directory-aware templating: Template entire directory trees, not just individual files.
 - Control files (Tomes) define generation rules locally, per directory, (similar to a Makefile for templates).
 - Tomes are templated themselves, as well as file- and directory names, allowing for dynamic output directroy structures.
+- Filenames and paths are also templated, as well as symbolic-link names and their targets
 - Go templates + Sprig functions: Powerful templating features out of the box.
 
 ## 📦 Installation
