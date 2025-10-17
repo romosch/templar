@@ -143,7 +143,11 @@ func (t *Tome) Render(inputPath string) error {
 	if symlink {
 		target, err := os.Readlink(inputPath)
 		if err != nil {
-			return fmt.Errorf("readlink %q: %w", inputPath, err)
+			return fmt.Errorf("error reading symlink %q: %w", inputPath, err)
+		}
+		target, err = t.templatePath(target)
+		if err != nil {
+			return fmt.Errorf("error formatting target for symlink %q: %w", inputPath, err)
 		}
 
 		// Remove existing symlink if it exists and force option is set

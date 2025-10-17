@@ -12,7 +12,7 @@ import (
 )
 
 type Tome struct {
-	Spource string         `json:"source"`
+	Source  string         `json:"source"`
 	Target  string         `json:"target"`
 	Mode    os.FileMode    `json:"mode"`
 	Strip   []string       `json:"strip"`
@@ -25,7 +25,7 @@ type Tome struct {
 
 func (t *Tome) String() string {
 	return fmt.Sprintf("{source: %s, target: %s, mode: %o, strip: %s, include: %v, exclude: %v, copy: %v, temp: %v, values: %v}",
-		t.Spource, t.Target, t.Mode, t.Strip, t.Include, t.Exclude, t.Copy, t.Temp, t.Values)
+		t.Source, t.Target, t.Mode, t.Strip, t.Include, t.Exclude, t.Copy, t.Temp, t.Values)
 }
 
 func New(source, target, mode string, strip, include, exclude, copy, temp []string, values map[string]any) (*Tome, error) {
@@ -59,7 +59,7 @@ func New(source, target, mode string, strip, include, exclude, copy, temp []stri
 	}
 
 	return &Tome{
-		Spource: source,
+		Source:  source,
 		Target:  target,
 		Mode:    fileMode,
 		Strip:   strip,
@@ -129,7 +129,7 @@ func (t *Tome) shouldCopy(name string) bool {
 func (t *Tome) matchPatterns(patterns []string, name string) bool {
 	for _, pattern := range patterns {
 		if pattern[0] != '/' {
-			pattern = filepath.Join(t.Spource, pattern)
+			pattern = filepath.Join(t.Source, pattern)
 		}
 		matched, err := doublestar.PathMatch(pattern, name)
 		if err != nil {
@@ -145,12 +145,21 @@ func (t *Tome) matchPatterns(patterns []string, name string) bool {
 
 func (t *Tome) formatPath(inputPath string) (string, error) {
 	// Template the file name
-	relPath, err := filepath.Rel(t.Spource, inputPath)
+	relPath, err := filepath.Rel(t.Source, inputPath)
 	if err != nil {
 		return "", fmt.Errorf("error getting relative path: %w", err)
 	}
+	outputPath, err := t.templatePath(relPath)
+	if err != nil {
+		return "", fmt.Errorf("error templating path: %w", err)
+	}
+
+	return filepath.Join(t.Target, outputPath), nil
+}
+
+func (t *Tome) templatePath(inputPath string) (string, error) {
 	var templatedPath bytes.Buffer
-	err = t.Template(&templatedPath, relPath, inputPath)
+	err := t.Template(&templatedPath, inputPath, inputPath)
 	if err != nil {
 		return "", fmt.Errorf("error templating name: %w", err)
 	}
@@ -177,6 +186,5 @@ func (t *Tome) formatPath(inputPath string) (string, error) {
 			outputPath = filepath.Join(parts...)
 		}
 	}
-
-	return filepath.Join(t.Target, outputPath), nil
+	return outputPath, nil
 }

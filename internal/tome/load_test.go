@@ -139,7 +139,7 @@ values:
 				t.Fatalf("failed to write to temp file: %v", err)
 			}
 			tempFile.Close()
-			tt.base.Spource = filepath.Dir(tempDir)
+			tt.base.Source = filepath.Dir(tempDir)
 
 			tomes, err := LoadTomeFile(tempFile.Name(), &tt.base)
 			if tt.expectError {
